@@ -11,7 +11,6 @@ int main(int argc, char *argv[]) {
     
     int d_flag = 0, u_flag = 0, s_flag = 0, l_flag = 0;
 
-    int all_flag = 0;
     char *path = NULL;
     char *host = NULL;
     int dutimeout = 0;
@@ -19,7 +18,6 @@ int main(int argc, char *argv[]) {
     char *country = NULL;
 
     struct option long_options[] = {
-        {"all", no_argument, 0, 'a'},             // --all
         {"path", required_argument, 0, 'P'},      // --path
         {"host", required_argument, 0, 'H'},      // --host
         {"dutimeout", required_argument, 0, 'T'}, // --dutimeout
@@ -43,8 +41,6 @@ int main(int argc, char *argv[]) {
                 l_flag = 1;
                 break;
 
-            case 'a': // --all
-                all_flag = 1;
                 break;
             case 'P': // --path
                 path = optarg;
