@@ -6,46 +6,37 @@
 #include <unistd.h>
 #include <getopt.h>
 
-int main(int argc, char *argv[]) {
+struct option long_options[] = {
+    {"path", required_argument, 0, 'P'},
+    {"host", required_argument, 0, 'H'},
+    {"dutimeout", required_argument, 0, 'T'},
+    {"city", required_argument, 0, 'c'},
+    {"country", required_argument, 0, 'C'},
+    {0, 0, 0, 0}
+};
+
+int parse_cmd_args(int argc, char *argv[], Flags *flags) {
     int opt;
-    
-    int d_flag = 0, u_flag = 0, s_flag = 0, l_flag = 0;
-
-    char *path = NULL;
-    char *host = NULL;
-    int dutimeout = 0;
-    char *city = NULL;
-    char *country = NULL;
-
-    struct option long_options[] = {
-        {"path", required_argument, 0, 'P'},      // --path
-        {"host", required_argument, 0, 'H'},      // --host
-        {"dutimeout", required_argument, 0, 'T'}, // --dutimeout
-        {"city", required_argument, 0, 'c'},      // --city
-        {"country", required_argument, 0, 'C'},   // --country
-        {0, 0, 0, 0}
-    };
-
     while((opt = getopt_long(argc, argv, "dusl", long_options, NULL)) != -1) {
         switch(opt) {
             case 'd':
-                d_flag = 1;
+                flags->d_flag = 1;
                 break;
             case 'u':
-                u_flag = 1;
+                flags->u_flag = 1;
                 break;
             case 's':
-                s_flag = 1;
+                flags->s_flag = 1;
                 break;
             case 'l':
-                l_flag = 1;
+                flags->l_flag = 1;
                 break;
 
                 break;
-            case 'P': // --path
-                path = optarg;
+            case 'P':
+                flags->path = optarg;
                 break;
-            case 'T': // --dutimeout
+            case 'T':
                 char *endptr;
                 long val;
 
@@ -61,25 +52,46 @@ int main(int argc, char *argv[]) {
                     return EXIT_FAILURE;
                 }
 
-                dutimeout = (int)val;
+                flags->dutimeout = (int)val;
                 break;
-            case 'H': // --host
-                host = optarg;
+            case 'H':
+                flags->host = optarg;
                 break;
-            case 'c': // --city
-                city = optarg;
+            case 'c':
+                flags->city = optarg;
                 break;
-            case 'C': // --country
-                country = optarg;
+            case 'C':
+                flags->country = optarg;
                 break;
 
             case '?':
                 fprintf(stderr, "Use valid options\n");
-                return 1;
+                return EXIT_FAILURE;
             default:
                 fprintf(stderr, "Unexpected option: %c\n", opt);
-                return 1;
+                return EXIT_FAILURE;
         }
+    }
+
+    return EXIT_SUCCESS;
+}
+
+int main(int argc, char *argv[]) {
+    Flags flags = {
+        .d_flag = 0,
+        .u_flag = 0,
+        .s_flag = 0,
+        .l_flag = 0,
+
+        .path = NULL,
+        .host = NULL,
+        .dutimeout = 0,
+        .city = NULL,
+        .country = NULL
+    };
+
+    if(parse_cmd_args(argc, argv, &flags) == EXIT_FAILURE) {
+        return EXIT_FAILURE;
     }
 
     return EXIT_SUCCESS;
