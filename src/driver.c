@@ -1,4 +1,5 @@
 #include "driver.h"
+#include "server/server.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -80,6 +81,10 @@ int parse_cmd_args(int argc, char *argv[], Flags *flags) {
     return EXIT_SUCCESS;
 }
 
+int perform_download_speed_test(DownloadArgs *args) {
+    return EXIT_SUCCESS;
+}
+
 int main(int argc, char *argv[]) {
     Flags flags = {
         .d_flag = 0,
@@ -99,8 +104,32 @@ int main(int argc, char *argv[]) {
     if(parse_cmd_args(argc, argv, &flags) == EXIT_FAILURE) {
         return EXIT_FAILURE;
     }
-
-    printf("%zu\n", flags.server_directives);
+    
+    if(flags.d_flag) {
+        if(flags.server_directives == 0) {
+            fprintf(stderr, "No server directives specified with -d flag. What servers to test?");
+            return EXIT_FAILURE;
+        } else if(flags.server_directives > 1) {
+            fprintf(stderr, "Multiple server directives specified with -d flag. Ambiguity between which server(s) to test");
+            return EXIT_FAILURE;
+        } else {
+            if(flags.path) {
+                size_t count;
+                Server *servers = load_servers(flags.path, &count);
+                if(!servers) {
+                    return EXIT_FAILURE;
+                }
+                DownloadArgs args = {
+                    .servers = servers,
+                    .timeout = flags.dutimeout > 0 ? flags.dutimeout : 15
+                };
+                if(perform_download_speed_test(&args) == EXIT_FAILURE) {
+                    cleanup_servers(servers, count);
+                    return EXIT_FAILURE;
+                }
+            }
+        }
+    }
 
     return EXIT_SUCCESS;
 }
