@@ -121,3 +121,13 @@ Server *get_servers_by_city(Server *servers, size_t n, size_t *filtered_count) {
 Server *get_servers_by_country(Server *servers, size_t n, size_t *filtered_count) {
 
 }
+
+int print_servers(Server *servers, size_t count) {
+    if(!servers) return EXIT_FAILURE;
+    
+    for(size_t i = 0; i < count; ++i) {
+        printf("%s - %s, %s - %s, %i\n", servers[i].country, servers[i].city, servers[i].provider, servers[i].host, servers[i].id);
+    }
+
+    return EXIT_SUCCESS;
+}

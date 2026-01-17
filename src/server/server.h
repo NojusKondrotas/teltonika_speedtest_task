@@ -17,4 +17,6 @@ Server *load_servers(const char *filepath, size_t *count);
 Server *get_servers_by_city(Server *servers, size_t n, size_t *filtered_count);
 Server *get_servers_by_country(Server *servers, size_t n, size_t *filtered_count);
 
+int print_servers(Server *servers, size_t count);
+
 #endif
