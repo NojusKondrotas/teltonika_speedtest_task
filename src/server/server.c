@@ -5,6 +5,50 @@
 #include <stdlib.h>
 #include <string.h>
 
+Server create_server(char *country, char *city, char *provider, char *host, int id) {
+    Server server = {
+        .country = NULL,
+        .city = NULL,
+        .provider = NULL,
+        .host = NULL,
+        .id = id
+    };
+
+    server.country = strdup(country);
+    if(!server.country) {
+        return server;
+    }
+
+    server.city = strdup(city);
+    if(!server.city) {
+        free(server.country);
+        server.country = NULL;
+        return server;
+    }
+
+    server.provider = strdup(provider);
+    if(!server.provider) {
+        free(server.country);
+        free(server.city);
+        server.country = NULL;
+        server.city = NULL;
+        return server;
+    }
+
+    server.host = strdup(host);
+    if(!server.host) {
+        free(server.country);
+        free(server.city);
+        free(server.provider);
+        server.country = NULL;
+        server.city = NULL;
+        server.provider = NULL;
+        return server;
+    }
+    
+    return server;
+}
+
 Server deepcopy_server(Server server) {
     Server copy = {
         .country = NULL,
@@ -112,53 +156,41 @@ Server *load_servers(const char *filepath, size_t *count) {
         cJSON_Delete(json);
         return NULL;
     }
-    for (int i = 0; i < array_size; i++) {
+    for (int i = 0; i < array_size; ++i) {
         cJSON *item = cJSON_GetArrayItem(json, i);
         cJSON *country = cJSON_GetObjectItem(item, "country");
         cJSON *city = cJSON_GetObjectItem(item, "city");
         cJSON *provider = cJSON_GetObjectItem(item, "provider");
         cJSON *host = cJSON_GetObjectItem(item, "host");
         cJSON *id = cJSON_GetObjectItem(item, "id");
-        
-        if (country && country->valuestring) {
-            servers[i].country = strdup(country->valuestring);
-            if(!servers[i].country) {
-                fprintf(stderr, "Failure allocating memory for server property\n");
-                cleanup_servers(servers, i);
-                cJSON_Delete(json);
-                return NULL;
-            }
+
+        if(!country || !city || !provider || !host || !id) {
+            fprintf(stderr, "A required property was not found in a JSON object at index %d\n", i);
+            cleanup_servers(servers, i);
+            cJSON_Delete(json);
+            return NULL;
         }
-        if (city && city->valuestring) {
-            servers[i].city = strdup(city->valuestring);
-            if(!servers[i].city) {
-                fprintf(stderr, "Failure allocating memory for server property\n");
-                cleanup_servers(servers, i);
-                cJSON_Delete(json);
-                return NULL;
-            }
+
+        if (!cJSON_IsString(country) || !cJSON_IsString(city) || 
+            !cJSON_IsString(provider) || !cJSON_IsString(host) || 
+            !cJSON_IsNumber(id)) {
+            fprintf(stderr, "A required property is of an invalid type in a JSON object at index %d\n", i);
+            cleanup_servers(servers, i);
+            cJSON_Delete(json);
+            return NULL;
         }
-        if (provider && provider->valuestring) {
-            servers[i].provider = strdup(provider->valuestring);
-            if(!servers[i].provider) {
-                fprintf(stderr, "Failure allocating memory for server property\n");
-                cleanup_servers(servers, i);
-                cJSON_Delete(json);
-                return NULL;
-            }
+
+        Server server = create_server(country->valuestring, city->valuestring,
+            provider->valuestring, host->valuestring, id->valueint);
+
+        if(!server.country || !server.city || !server.provider || !server.host) {
+            fprintf(stderr, "Failure allocating memory for server property\n");
+            cleanup_servers(servers, i);
+            cJSON_Delete(json);
+            return NULL;
         }
-        if (host && host->valuestring) {
-            servers[i].host = strdup(host->valuestring);
-            if(!servers[i].host) {
-                fprintf(stderr, "Failure allocating memory for server property\n");
-                cleanup_servers(servers, i);
-                cJSON_Delete(json);
-                return NULL;
-            }
-        }
-        if (id) {
-            servers[i].id = id->valueint;
-        }
+
+        servers[i] = server;
     }
     
     *count = array_size;

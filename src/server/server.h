@@ -11,6 +11,7 @@ typedef struct s_server {
     int id;
 }Server;
 
+Server create_server(char *country, char *city, char *provider, char *host, int id);
 Server deepcopy_server(Server server);
 
 void cleanup_servers(Server *servers, size_t count);
