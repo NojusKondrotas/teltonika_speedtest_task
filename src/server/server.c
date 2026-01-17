@@ -101,8 +101,8 @@ Server deepcopy_server(Server server) {
     return copy;
 }
 
-void cleanup_servers(Server *servers, size_t count) {
-    for (int i = 0; i < count; i++) {
+void cleanup_servers(Server *servers, int count) {
+    for (int i = 0; i < count; ++i) {
         free(servers[i].country);
         free(servers[i].city);
         free(servers[i].provider);
