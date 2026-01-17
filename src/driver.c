@@ -147,7 +147,7 @@ int main(int argc, char *argv[]) {
             }
                 
             if(flags.city) {
-                Server *tmp = get_servers_by_city(servers, count);
+                Server *tmp = get_servers_by_city(servers, count, &count);
 
                 cleanup_servers(servers, count);
                 if(!tmp) {
@@ -156,7 +156,7 @@ int main(int argc, char *argv[]) {
 
                 servers = tmp;
             } else if(flags.country) {
-                Server *tmp = get_servers_by_city(servers, count);
+                Server *tmp = get_servers_by_city(servers, count, &count);
 
                 cleanup_servers(servers, count);
                 if(!tmp) {
@@ -168,6 +168,7 @@ int main(int argc, char *argv[]) {
 
             DownloadArgs args = {
                 .servers = servers,
+                .count = count,
                 .timeout = flags.dutimeout > 0 ? flags.dutimeout : 15
             };
             if(perform_download_speed_test(&args) == EXIT_FAILURE) {

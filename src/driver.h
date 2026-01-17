@@ -18,6 +18,7 @@ typedef struct s_driver_flags{
 
 typedef struct s_download_args{
     Server *servers;
+    size_t count;
     size_t timeout;
 }DownloadArgs;
 
