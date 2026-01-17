@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-static void cleanup_servers(Server *servers, size_t count) {
+void cleanup_servers(Server *servers, size_t count) {
     for (int i = 0; i < count; i++) {
         free(servers[i].country);
         free(servers[i].city);
@@ -112,4 +112,12 @@ Server *load_servers(const char *filepath, size_t *count) {
     *count = array_size;
     cJSON_Delete(json);
     return servers;
+}
+
+Server *get_servers_by_city(Server *servers, size_t n) {
+    
+}
+
+Server *get_servers_by_country(Server *servers, size_t n) {
+
 }
