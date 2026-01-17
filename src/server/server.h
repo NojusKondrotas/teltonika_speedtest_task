@@ -1,3 +1,6 @@
+#ifndef SERVER_H
+#define SERVER_H
+
 #include <stdlib.h>
 
 typedef struct s_server {
@@ -9,3 +12,5 @@ typedef struct s_server {
 }Server;
 
 Server *load_servers(const char *filepath, size_t *count);
+
+#endif
