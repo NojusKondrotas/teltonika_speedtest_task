@@ -35,6 +35,7 @@ int parse_cmd_args(int argc, char *argv[], Flags *flags) {
                 break;
             case 'P':
                 flags->path = optarg;
+                ++flags->server_directives;
                 break;
             case 'T':
                 char *endptr;
@@ -56,12 +57,15 @@ int parse_cmd_args(int argc, char *argv[], Flags *flags) {
                 break;
             case 'H':
                 flags->host = optarg;
+                ++flags->server_directives;
                 break;
             case 'c':
                 flags->city = optarg;
+                ++flags->server_directives;
                 break;
             case 'C':
                 flags->country = optarg;
+                ++flags->server_directives;
                 break;
 
             case '?':
@@ -87,12 +91,16 @@ int main(int argc, char *argv[]) {
         .host = NULL,
         .dutimeout = 0,
         .city = NULL,
-        .country = NULL
+        .country = NULL,
+
+        .server_directives = 0
     };
 
     if(parse_cmd_args(argc, argv, &flags) == EXIT_FAILURE) {
         return EXIT_FAILURE;
     }
+
+    printf("%zu\n", flags.server_directives);
 
     return EXIT_SUCCESS;
 }
