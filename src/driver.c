@@ -62,11 +62,11 @@ int parse_cmd_args(int argc, char *argv[], Flags *flags) {
                 break;
             case 'c':
                 flags->city = optarg;
-                ++flags->server_directives;
+                ++flags->server_filters;
                 break;
             case 'C':
                 flags->country = optarg;
-                ++flags->server_directives;
+                ++flags->server_filters;
                 break;
 
             case '?':
@@ -98,35 +98,81 @@ int main(int argc, char *argv[]) {
         .city = NULL,
         .country = NULL,
 
-        .server_directives = 0
+        .server_directives = 0,
+        .server_filters = 0
     };
 
     if(parse_cmd_args(argc, argv, &flags) == EXIT_FAILURE) {
         return EXIT_FAILURE;
     }
+
+    if(flags.server_filters > 1) {
+        fprintf(stderr, "Multiple server filters specified (--city and --country). Ambiguity between which one to apply\n");
+        return EXIT_FAILURE;
+    }
     
     if(flags.d_flag) {
         if(flags.server_directives == 0) {
-            fprintf(stderr, "No server directives specified with -d flag. What servers to test?");
+            fprintf(stderr, "No server directives specified with -d flag. What servers to test?\n");
             return EXIT_FAILURE;
         } else if(flags.server_directives > 1) {
-            fprintf(stderr, "Multiple server directives specified with -d flag. Ambiguity between which server(s) to test");
+            fprintf(stderr, "Multiple server directives specified with -d flag (--path and --host). Ambiguity between which server(s) to test\n");
             return EXIT_FAILURE;
         } else {
+            size_t count;
+            Server *servers = NULL;
+
             if(flags.path) {
-                size_t count;
-                Server *servers = load_servers(flags.path, &count);
+                servers = load_servers(flags.path, &count);
                 if(!servers) {
                     return EXIT_FAILURE;
                 }
-                DownloadArgs args = {
-                    .servers = servers,
-                    .timeout = flags.dutimeout > 0 ? flags.dutimeout : 15
-                };
-                if(perform_download_speed_test(&args) == EXIT_FAILURE) {
-                    cleanup_servers(servers, count);
+            } else if(flags.host) {
+                count = 1;
+                servers = malloc(sizeof(Server));
+                if(!servers) {
+                    fprintf(stderr, "Failure allocating memory for server\n");
                     return EXIT_FAILURE;
                 }
+                servers[0] = (Server){
+                    .city = NULL,
+                    .country = NULL,
+                    .host = flags.host,
+                    .id = -1,
+                    .provider = NULL
+                };
+            } else {
+                fprintf(stderr, "Internal error: server directive specified but neither path nor host found\n");
+                return EXIT_FAILURE;
+            }
+                
+            if(flags.city) {
+                Server *tmp = get_servers_by_city(servers, count);
+
+                cleanup_servers(servers, count);
+                if(!tmp) {
+                    return EXIT_FAILURE;
+                }
+
+                servers = tmp;
+            } else if(flags.country) {
+                Server *tmp = get_servers_by_city(servers, count);
+
+                cleanup_servers(servers, count);
+                if(!tmp) {
+                    return EXIT_FAILURE;
+                }
+                
+                servers = tmp;
+            }
+
+            DownloadArgs args = {
+                .servers = servers,
+                .timeout = flags.dutimeout > 0 ? flags.dutimeout : 15
+            };
+            if(perform_download_speed_test(&args) == EXIT_FAILURE) {
+                cleanup_servers(servers, count);
+                return EXIT_FAILURE;
             }
         }
     }

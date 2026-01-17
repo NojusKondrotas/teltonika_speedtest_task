@@ -13,6 +13,7 @@ typedef struct s_driver_flags{
     char *city;
     char *country;
     size_t server_directives;
+    size_t server_filters;
 }Flags;
 
 typedef struct s_download_args{
