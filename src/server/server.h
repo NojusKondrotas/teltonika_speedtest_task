@@ -11,6 +11,8 @@ typedef struct s_server {
     int id;
 }Server;
 
+Server deepcopy_server(Server server);
+
 void cleanup_servers(Server *servers, size_t count);
 
 Server *load_servers(const char *filepath, size_t *count);

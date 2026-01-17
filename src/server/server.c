@@ -5,6 +5,58 @@
 #include <stdlib.h>
 #include <string.h>
 
+Server deepcopy_server(Server server) {
+    Server copy = {
+        .country = NULL,
+        .city = NULL,
+        .provider = NULL,
+        .host = NULL,
+        .id = server.id
+    };
+
+    if(server.country) {
+        copy.country = strdup(server.country);
+        if (!copy.country) {
+            return copy;
+        }
+    }
+
+    if(server.city) {
+        copy.city = strdup(server.city);
+        if(!copy.city) {
+            free(copy.country);
+            copy.country = NULL;
+            return copy;
+        }
+    }
+    
+    if(server.provider) {
+        copy.provider = strdup(server.provider);
+        if(!copy.provider) {
+            free(copy.country);
+            free(copy.city);
+            copy.country = NULL;
+            copy.city = NULL;
+            return copy;
+        }
+    }
+    
+    if(server.host) {
+        copy.host = strdup(server.host);
+        if(!copy.host) {
+            free(copy.country);
+            free(copy.city);
+            free(copy.provider);
+            copy.country = NULL;
+            copy.city = NULL;
+            copy.provider = NULL;
+            return copy;
+        }
+    }
+    
+    return copy;
+}
+
 void cleanup_servers(Server *servers, size_t count) {
     for (int i = 0; i < count; i++) {
         free(servers[i].country);
