@@ -156,7 +156,7 @@ int main(int argc, char *argv[]) {
 
     if(flags.server_filters == 1) {
         if(flags.city) {
-            Server *tmp = get_servers_by_city(servers, s_count, &s_count);
+            Server *tmp = get_servers_by_city(servers, s_count, flags.city, &s_count);
 
             cleanup_servers(servers, s_count);
             if(!tmp) {
