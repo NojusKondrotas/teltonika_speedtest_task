@@ -221,9 +221,10 @@ int main(int argc, char *argv[]) {
                 cleanup_servers(servers, s_count);
                 return EXIT_FAILURE;
             }
-            printf("User location:\nCountry: %s, City: %s\n\n", country, city);
+            printf("User location:\nCountry: %s, City: %s\n", country, city);
             free(city);
             free(country);
+            printf("\n");
         } else {
             if(flags.path) {
                 if(!servers) {
@@ -237,19 +238,19 @@ int main(int argc, char *argv[]) {
                 for(size_t i = 0; i < s_count; ++i) {
                    host_clean = remove_port(servers[i].host);
                     if (!host_clean) {
-                        fprintf(stderr, "Failed to remove port\n");
-                        cleanup_servers(servers, s_count);
-                        return EXIT_FAILURE;
+                        fprintf(stderr, "Failed to remove port for host %s\n", servers[i].host);
+                        continue;
                     }
 
                     if (get_user_location(host_clean, &city, &country) == EXIT_SUCCESS) {
-                        printf("Host %s location:\nCountry: %s, City: %s\n\n", servers[i].host, country, city);
+                        printf("Host's %s location:\nCountry: %s, City: %s\n", servers[i].host, country, city);
                     }
 
                     free(host_clean);
                     free(city);
                     free(country);
                     city = country = NULL;
+                    printf("\n");
                 }
             } else if(flags.host) {
                 if(!servers) {
@@ -270,13 +271,13 @@ int main(int argc, char *argv[]) {
 
                 char *host_clean = remove_port(servers[0].host);
                 if(host_clean == NULL) {
-                    fprintf(stderr, "Failed to remove port from host address, cannot proceed with location\n");
-                }
-                if(get_user_location(host_clean, &city, &country) == EXIT_SUCCESS) {
-                    printf("Host's %s location:\nCountry: %s, City: %s\n\n", servers[0].host, country, city);
+                    fprintf(stderr, "Failed to remove port for host %s\n", servers[0].host);
+                } else if(get_user_location(host_clean, &city, &country) == EXIT_SUCCESS) {
+                    printf("Host's %s location:\nCountry: %s, City: %s\n", servers[0].host, country, city);
                 }
                 free(city);
                 free(country);
+                printf("\n");
             } else {
                 fprintf(stderr, "Internal error: server directive specified but neither path nor host found\n");
                 cleanup_servers(servers, s_count);

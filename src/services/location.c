@@ -60,13 +60,13 @@ int get_user_location(char *ip, char **city, char **country) {
     free(response.data);
 
     if(!json) {
-        fprintf(stderr, "Failure parsing JSON\n");
+        fprintf(stderr, "Failure parsing JSON (%s)\n", ip);
         return EXIT_FAILURE;
     }
 
     cJSON *status = cJSON_GetObjectItem(json, "status");
     if(!status || strcmp(status->valuestring, "success") != 0) {
-        fprintf(stderr, "Not able to get response status\n");
+        fprintf(stderr, "Not able to retrieve response status or request is unsuccessful (%s)\n", ip);
         cJSON_Delete(json);
         return EXIT_FAILURE;
     }
@@ -77,7 +77,7 @@ int get_user_location(char *ip, char **city, char **country) {
     if(city_json && cJSON_IsString(city_json) && city_json->valuestring) {
         *city = strdup(city_json->valuestring);
     } else {
-        fprintf(stderr, "Not able to geolocate city\n");
+        fprintf(stderr, "Not able to geolocate city of %s\n", ip);
         cJSON_Delete(json);
         return EXIT_FAILURE;
     }
@@ -85,7 +85,7 @@ int get_user_location(char *ip, char **city, char **country) {
     if(country_json && cJSON_IsString(country_json) && country_json->valuestring) {
         *country = strdup(country_json->valuestring);
     } else {
-        fprintf(stderr, "Not able to geolocate country\n");
+        fprintf(stderr, "Not able to geolocate country of %s\n", ip);
         free(*city);
         cJSON_Delete(json);
         return EXIT_FAILURE;
