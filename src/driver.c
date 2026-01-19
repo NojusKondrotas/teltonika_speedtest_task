@@ -165,7 +165,7 @@ int main(int argc, char *argv[]) {
 
             servers = tmp;
         } else if(flags.country) {
-            Server *tmp = get_servers_by_country(servers, s_count, &s_count);
+            Server *tmp = get_servers_by_country(servers, s_count, flags.country, &s_count);
 
             cleanup_servers(servers, s_count);
             if(!tmp) {

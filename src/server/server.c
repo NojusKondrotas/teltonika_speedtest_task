@@ -233,8 +233,25 @@ Server *get_servers_by_city(Server *servers, size_t n, char *city, size_t *filte
     return filtered;
 }
 
-Server *get_servers_by_country(Server *servers, size_t n, size_t *filtered_count) {
+Server *get_servers_by_country(Server *servers, size_t n, char *country, size_t *filtered_count) {
+    Server *filtered = NULL;
+    *filtered_count = 0;
 
+    for(size_t i = 0; i < n; i++) {
+        if(servers[i].country != NULL && country && strcmp(servers[i].country, country) == 0) {
+            Server *tmp = realloc(filtered, (*filtered_count + 1) * sizeof(Server));
+            if(!tmp) {
+                free(filtered);
+                *filtered_count = 0;
+                return NULL;
+            }
+            
+            filtered = tmp;
+            filtered[(*filtered_count)++] = servers[i];
+        }
+    }
+
+    return filtered;
 }
 
 int print_servers(Server *servers, size_t count) {
