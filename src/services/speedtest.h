@@ -6,10 +6,10 @@
 #include <curl/curl.h>
 #include <stdlib.h>
 
-#define UP_BUFFER_SIZE (100 * 1024 * 1024)
+#define UP_BUFFER_SIZE (2 * 1024 * 1024)
 
 typedef struct s_upload_data{
-    char *buffer[UP_BUFFER_SIZE];
+    char *buffer;
 }UploadData;
 
 struct curl_slist *add_headers(CURL *curl);
