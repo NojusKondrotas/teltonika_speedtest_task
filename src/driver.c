@@ -128,54 +128,61 @@ int main(int argc, char *argv[]) {
     
     size_t s_count;
     Server *servers = NULL;
+    if(flags.server_directives == 1) {
+        if(flags.path) {
+            servers = load_servers(flags.path, &s_count);
+            if(!servers) {
+                return EXIT_FAILURE;
+            }
+        } else if(flags.host) {
+            s_count = 1;
+            servers = malloc(sizeof(Server));
+            if(!servers) {
+                fprintf(stderr, "Failure allocating memory for server\n");
+                return EXIT_FAILURE;
+            }
+            servers[0] = (Server){
+                .city = NULL,
+                .country = NULL,
+                .host = flags.host,
+                .id = -1,
+                .provider = NULL
+            };
+        } else {
+            fprintf(stderr, "Internal error: server directive specified but neither path nor host found\n");
+            return EXIT_FAILURE;
+        }
+    }
+
+    if(flags.server_filters == 1) {
+        if(flags.city) {
+            Server *tmp = get_servers_by_city(servers, s_count, &s_count);
+
+            cleanup_servers(servers, s_count);
+            if(!tmp) {
+                return EXIT_FAILURE;
+            }
+
+            servers = tmp;
+        } else if(flags.country) {
+            Server *tmp = get_servers_by_country(servers, s_count, &s_count);
+
+            cleanup_servers(servers, s_count);
+            if(!tmp) {
+                return EXIT_FAILURE;
+            }
+            
+            servers = tmp;
+        } else {
+            fprintf(stderr, "Internal error: server filter specified but neither country nor city found\n");
+            return EXIT_FAILURE;
+        }
+    }
+    
     if(flags.d_flag || flags.u_flag) {
         if(flags.server_directives == 0) {
             fprintf(stderr, "A server directive must be specified with -d and -u flags. What servers to test?\n");
             return EXIT_FAILURE;
-        } else {
-            if(flags.path) {
-                servers = load_servers(flags.path, &s_count);
-                if(!servers) {
-                    return EXIT_FAILURE;
-                }
-            } else if(flags.host) {
-                s_count = 1;
-                servers = malloc(sizeof(Server));
-                if(!servers) {
-                    fprintf(stderr, "Failure allocating memory for server\n");
-                    return EXIT_FAILURE;
-                }
-                servers[0] = (Server){
-                    .city = NULL,
-                    .country = NULL,
-                    .host = flags.host,
-                    .id = -1,
-                    .provider = NULL
-                };
-            } else {
-                fprintf(stderr, "Internal error: server directive specified but neither path nor host found\n");
-                return EXIT_FAILURE;
-            }
-                
-            if(flags.city) {
-                Server *tmp = get_servers_by_city(servers, s_count, &s_count);
-
-                cleanup_servers(servers, s_count);
-                if(!tmp) {
-                    return EXIT_FAILURE;
-                }
-
-                servers = tmp;
-            } else if(flags.country) {
-                Server *tmp = get_servers_by_country(servers, s_count, &s_count);
-
-                cleanup_servers(servers, s_count);
-                if(!tmp) {
-                    return EXIT_FAILURE;
-                }
-                
-                servers = tmp;
-            }
         }
     }
 
@@ -226,62 +233,23 @@ int main(int argc, char *argv[]) {
             free(country);
             printf("\n");
         } else {
-            if(flags.path) {
-                if(!servers) {
-                    servers = load_servers(flags.path, &s_count);
-                    if(!servers) {
-                        return EXIT_FAILURE;
-                    }
+            char *host_clean;
+            for(size_t i = 0; i < s_count; ++i) {
+                host_clean = remove_port(servers[i].host);
+                if (!host_clean) {
+                    fprintf(stderr, "Failed to remove port for host %s\n", servers[i].host);
+                    continue;
                 }
 
-                char *host_clean;
-                for(size_t i = 0; i < s_count; ++i) {
-                   host_clean = remove_port(servers[i].host);
-                    if (!host_clean) {
-                        fprintf(stderr, "Failed to remove port for host %s\n", servers[i].host);
-                        continue;
-                    }
-
-                    if (get_user_location(host_clean, &city, &country) == EXIT_SUCCESS) {
-                        printf("Host's %s location:\nCountry: %s, City: %s\n", servers[i].host, country, city);
-                    }
-
-                    free(host_clean);
-                    free(city);
-                    free(country);
-                    city = country = NULL;
-                    printf("\n");
-                }
-            } else if(flags.host) {
-                if(!servers) {
-                    s_count = 1;
-                    servers = malloc(sizeof(Server));
-                    if(!servers) {
-                        fprintf(stderr, "Failure allocating memory for server\n");
-                        return EXIT_FAILURE;
-                    }
-                    servers[0] = (Server){
-                        .city = NULL,
-                        .country = NULL,
-                        .host = flags.host,
-                        .id = -1,
-                        .provider = NULL
-                    };
+                if (get_user_location(host_clean, &city, &country) == EXIT_SUCCESS) {
+                    printf("Host's %s location:\nCountry: %s, City: %s\n", host_clean, country, city);
                 }
 
-                char *host_clean = remove_port(servers[0].host);
-                if(host_clean == NULL) {
-                    fprintf(stderr, "Failed to remove port for host %s\n", servers[0].host);
-                } else if(get_user_location(host_clean, &city, &country) == EXIT_SUCCESS) {
-                    printf("Host's %s location:\nCountry: %s, City: %s\n", servers[0].host, country, city);
-                }
+                free(host_clean);
                 free(city);
                 free(country);
+                city = country = NULL;
                 printf("\n");
-            } else {
-                fprintf(stderr, "Internal error: server directive specified but neither path nor host found\n");
-                cleanup_servers(servers, s_count);
-                return EXIT_FAILURE;
             }
         }
     }
