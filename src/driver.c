@@ -15,7 +15,7 @@ struct option long_options[] = {
     {"dutimeout", required_argument, 0, 'T'},
     {"city", required_argument, 0, 'c'},
     {"country", required_argument, 0, 'C'},
-    {"user", no_argument, }, 'U',
+    {"user", no_argument, 0, 'U'},
     {0, 0, 0, 0}
 };
 
@@ -204,12 +204,67 @@ int main(int argc, char *argv[]) {
     }
 
     if(flags.s_flag) {
-        char *ip = "0";
-        if(get_user_ip(&ip) != EXIT_SUCCESS) {
+        char *ip;
+        if(get_user_ip(&ip) == EXIT_FAILURE) {
             return EXIT_FAILURE;
         }
         printf("User IP: %s\n", ip);
         free(ip);
+    }
+
+    if(flags.l_flag) {
+        char *ip;
+        char *city, *country;
+        if(flags.user || (!flags.path && !flags.host)) {
+            if(get_user_location("", &city, &country) == EXIT_FAILURE) {
+                cleanup_servers(servers, s_count);
+                return EXIT_FAILURE;
+            }
+            printf("User location:\nCity: %s, Country: %s\n", city, country);
+        } else {
+            if(flags.path) {
+                if(!servers) {
+                    servers = load_servers(flags.path, &s_count);
+                    if(!servers) {
+                        return EXIT_FAILURE;
+                    }
+                }
+
+                for(size_t i = 0; i < s_count; ++i) {
+                    if(get_user_location(servers[i].host, &city, &country) == EXIT_FAILURE) {
+                        cleanup_servers(servers, s_count);
+                        return EXIT_FAILURE;
+                    }
+                    printf("Host's %s location:\nCity: %s, Country: %s\n", servers[i].host, city, country);
+                }
+            } else if(flags.host) {
+                if(!servers) {
+                    s_count = 1;
+                    servers = malloc(sizeof(Server));
+                    if(!servers) {
+                        fprintf(stderr, "Failure allocating memory for server\n");
+                        return EXIT_FAILURE;
+                    }
+                    servers[0] = (Server){
+                        .city = NULL,
+                        .country = NULL,
+                        .host = flags.host,
+                        .id = -1,
+                        .provider = NULL
+                    };
+                }
+
+                if(get_user_location(servers[0].host, &city, &country) == EXIT_FAILURE) {
+                    cleanup_servers(servers, s_count);
+                    return EXIT_FAILURE;
+                }
+                printf("Host's %s location:\nCity: %s, Country: %s\n\n", servers[0].host, city, country);
+            } else {
+                fprintf(stderr, "Internal error: server directive specified but neither path nor host found\n");
+                cleanup_servers(servers, s_count);
+                return EXIT_FAILURE;
+            }
+        }
     }
 
     return EXIT_SUCCESS;
