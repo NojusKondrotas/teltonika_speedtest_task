@@ -112,6 +112,11 @@ int main(int argc, char *argv[]) {
         return EXIT_FAILURE;
     }
 
+    if(flags.server_directives > 1) {
+        fprintf(stderr, "Multiple server directives specified (--path and --host). Ambiguity between which server(s) to test\n");
+        return EXIT_FAILURE;
+    }
+
     if(flags.server_filters > 1) {
         fprintf(stderr, "Multiple server filters specified (--city and --country). Ambiguity between which one to apply\n");
         return EXIT_FAILURE;
@@ -122,9 +127,6 @@ int main(int argc, char *argv[]) {
     if(flags.d_flag || flags.u_flag) {
         if(flags.server_directives == 0) {
             fprintf(stderr, "A server directive must be specified with -d and -u flags. What servers to test?\n");
-            return EXIT_FAILURE;
-        } else if(flags.server_directives > 1) {
-            fprintf(stderr, "Only one server directive must be specified with -d and -u flags (--path or --host). Ambiguity between which server(s) to test\n");
             return EXIT_FAILURE;
         } else {
             if(flags.path) {
