@@ -6,21 +6,19 @@
 #include <stdlib.h>
 #include <string.h>
 
-static size_t write_cb(void *ptr, size_t size, size_t nmemb, void *userdata) {
-    size_t total = size * nmemb;
-    char **ip = (char **)userdata;
+size_t write_cb(void *contents, size_t size, size_t nmemb, void *userp) {
+    size_t realsize = size * nmemb;
+    HttpResponse *mem = userp;
 
-    static size_t len = 0;
+    char *ptr = realloc(mem->data, mem->size + realsize + 1);
+    if (!ptr) return 0;
 
-    char *tmp = realloc(*ip, len + total + 1);
-    if (!tmp) return 0;
+    mem->data = ptr;
+    memcpy(&(mem->data[mem->size]), contents, realsize);
+    mem->size += realsize;
+    mem->data[mem->size] = '\0';
 
-    *ip = tmp;
-    memcpy(*ip + len, ptr, total);
-    len += total;
-    (*ip)[len] = '\0';
-
-    return total;
+    return realsize;
 }
 
 int get_user_location(char *ip, char **city, char **country) {
@@ -43,7 +41,7 @@ int get_user_location(char *ip, char **city, char **country) {
         return EXIT_FAILURE;
     }
 
-    char *response;
+    HttpResponse response = {0};
 
     curl_easy_setopt(curl, CURLOPT_URL, url);
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_cb);
@@ -52,14 +50,14 @@ int get_user_location(char *ip, char **city, char **country) {
     CURLcode res = curl_easy_perform(curl);
     if(res != CURLE_OK) {
         fprintf(stderr, "curl encountered an error: %s\n", curl_easy_strerror(res));
-        free(response);
+        free(response.data);
         curl_easy_cleanup(curl);
         return EXIT_FAILURE;
     }
     curl_easy_cleanup(curl);
-    
-    cJSON *json = cJSON_Parse(response);
-    free(response);
+
+    cJSON *json = cJSON_Parse(response.data);
+    free(response.data);
 
     if(!json) {
         fprintf(stderr, "Failure parsing JSON\n");
