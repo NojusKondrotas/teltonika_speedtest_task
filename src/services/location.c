@@ -3,6 +3,7 @@
 #include <curl/curl.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 static size_t write_cb(void *ptr, size_t size, size_t nmemb, void *userdata) {
     size_t total = size * nmemb;
