@@ -111,6 +111,20 @@ void cleanup_servers(Server *servers, int count) {
     free(servers);
 }
 
+char *remove_port(char *host) {
+    const char *colon = strchr(host, ':');
+    size_t len = colon ? (size_t)(colon - host) : strlen(host);
+
+    char *host_clean = malloc(len + 1);
+    if(!host_clean){
+        return NULL;
+    }
+
+    strncpy(host_clean, host, len);
+    host_clean[len] = '\0';
+    return host_clean;
+}
+
 Server *load_servers(const char *filepath, size_t *count) {
     FILE *fptr;
 
