@@ -14,6 +14,13 @@ struct curl_slist *add_headers(CURL *curl) {
     return headers;
 }
 
+void fill_buffer(UploadData *buf) {
+    srand(time(NULL));
+    for(size_t i = 0; i < UP_BUFFER_SIZE; i++) {
+        buf->buffer[i] = rand() % 256;
+    }
+}
+
 int get_download_speed(Server *servers, size_t count) {
     return EXIT_SUCCESS;
 }

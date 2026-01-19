@@ -12,6 +12,8 @@ typedef struct s_upload_data{
     char *buffer[UP_BUFFER_SIZE];
 }UploadData;
 
+void fill_buffer(UploadData *buf);
+
 struct curl_slist *add_headers(CURL *curl);
 int get_download_speed(Server *servers, size_t count);
 int get_upload_speed(Server *servers, size_t count);
