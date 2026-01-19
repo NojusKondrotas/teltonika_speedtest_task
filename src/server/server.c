@@ -1,5 +1,5 @@
 #include "server.h"
-#include "../cJSON/cJSON.h"
+#include "../libs/cJSON/cJSON.h"
 
 #include <stdio.h>
 #include <stdlib.h>

@@ -1,4 +1,4 @@
-#include "../cJSON/cJSON.h"
+#include "../libs/cJSON/cJSON.h"
 #include "location.h"
 
 #include <curl/curl.h>

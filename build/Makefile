@@ -5,7 +5,7 @@ LDFLAGS = -lcurl
 SRC_DIR = ../src
 SERVER_DIR = $(SRC_DIR)/server
 SERVICES_DIR = $(SRC_DIR)/services
-CJSON_DIR = $(SRC_DIR)/cJSON
+CJSON_DIR = $(SRC_DIR)/libs/cJSON
 
 SOURCES = $(SRC_DIR)/driver.c \
           $(SERVER_DIR)/server.c \
