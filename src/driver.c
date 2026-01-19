@@ -126,7 +126,7 @@ int main(int argc, char *argv[]) {
         return EXIT_FAILURE;
     }
     
-    size_t count;
+    size_t s_count;
     Server *servers = NULL;
     if(flags.d_flag || flags.u_flag) {
         if(flags.server_directives == 0) {
@@ -134,12 +134,12 @@ int main(int argc, char *argv[]) {
             return EXIT_FAILURE;
         } else {
             if(flags.path) {
-                servers = load_servers(flags.path, &count);
+                servers = load_servers(flags.path, &s_count);
                 if(!servers) {
                     return EXIT_FAILURE;
                 }
             } else if(flags.host) {
-                count = 1;
+                s_count = 1;
                 servers = malloc(sizeof(Server));
                 if(!servers) {
                     fprintf(stderr, "Failure allocating memory for server\n");
@@ -158,18 +158,18 @@ int main(int argc, char *argv[]) {
             }
                 
             if(flags.city) {
-                Server *tmp = get_servers_by_city(servers, count, &count);
+                Server *tmp = get_servers_by_city(servers, s_count, &s_count);
 
-                cleanup_servers(servers, count);
+                cleanup_servers(servers, s_count);
                 if(!tmp) {
                     return EXIT_FAILURE;
                 }
 
                 servers = tmp;
             } else if(flags.country) {
-                Server *tmp = get_servers_by_country(servers, count, &count);
+                Server *tmp = get_servers_by_country(servers, s_count, &s_count);
 
-                cleanup_servers(servers, count);
+                cleanup_servers(servers, s_count);
                 if(!tmp) {
                     return EXIT_FAILURE;
                 }
@@ -182,11 +182,11 @@ int main(int argc, char *argv[]) {
     if(flags.d_flag) {
         DownloadArgs args = {
             .servers = servers,
-            .count = count,
+            .count = s_count,
             .timeout = flags.dutimeout > 0 ? flags.dutimeout : 15
         };
         if(perform_download_speed_test(&args) == EXIT_FAILURE) {
-            cleanup_servers(servers, count);
+            cleanup_servers(servers, s_count);
             return EXIT_FAILURE;
         }
     }
@@ -194,11 +194,11 @@ int main(int argc, char *argv[]) {
     if(flags.u_flag) {
         UploadArgs args = {
             .servers = servers,
-            .count = count,
+            .count = s_count,
             .timeout = flags.dutimeout > 0 ? flags.dutimeout : 15
         };
         if(perform_upload_speed_test(&args) == EXIT_FAILURE) {
-            cleanup_servers(servers, count);
+            cleanup_servers(servers, s_count);
             return EXIT_FAILURE;
         }
     }
