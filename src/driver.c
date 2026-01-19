@@ -34,8 +34,6 @@ int parse_cmd_args(int argc, char *argv[], Flags *flags) {
             case 'l':
                 flags->l_flag = 1;
                 break;
-
-                break;
             case 'P':
                 flags->path = optarg;
                 ++flags->server_directives;
