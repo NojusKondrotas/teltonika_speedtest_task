@@ -119,17 +119,16 @@ int main(int argc, char *argv[]) {
         return EXIT_FAILURE;
     }
     
-    if(flags.d_flag) {
+    size_t count;
+    Server *servers = NULL;
+    if(flags.d_flag || flags.u_flag) {
         if(flags.server_directives == 0) {
-            fprintf(stderr, "No server directives specified with -d flag. What servers to test?\n");
+            fprintf(stderr, "A server directive must be specified with -d and -u flags. What servers to test?\n");
             return EXIT_FAILURE;
         } else if(flags.server_directives > 1) {
-            fprintf(stderr, "Multiple server directives specified with -d flag (--path and --host). Ambiguity between which server(s) to test\n");
+            fprintf(stderr, "Only one server directive must be specified with -d and -u flags (--path or --host). Ambiguity between which server(s) to test\n");
             return EXIT_FAILURE;
         } else {
-            size_t count;
-            Server *servers = NULL;
-
             if(flags.path) {
                 servers = load_servers(flags.path, &count);
                 if(!servers) {
@@ -172,84 +171,31 @@ int main(int argc, char *argv[]) {
                 }
                 
                 servers = tmp;
-            }
-
-            DownloadArgs args = {
-                .servers = servers,
-                .count = count,
-                .timeout = flags.dutimeout > 0 ? flags.dutimeout : 15
-            };
-            if(perform_download_speed_test(&args) == EXIT_FAILURE) {
-                cleanup_servers(servers, count);
-                return EXIT_FAILURE;
             }
         }
     }
 
+    if(flags.d_flag) {
+        DownloadArgs args = {
+            .servers = servers,
+            .count = count,
+            .timeout = flags.dutimeout > 0 ? flags.dutimeout : 15
+        };
+        if(perform_download_speed_test(&args) == EXIT_FAILURE) {
+            cleanup_servers(servers, count);
+            return EXIT_FAILURE;
+        }
+    }
+
     if(flags.u_flag) {
-        if(flags.server_directives == 0) {
-            fprintf(stderr, "No server directives specified with -u flag. What servers to test?\n");
+        UploadArgs args = {
+            .servers = servers,
+            .count = count,
+            .timeout = flags.dutimeout > 0 ? flags.dutimeout : 15
+        };
+        if(perform_upload_speed_test(&args) == EXIT_FAILURE) {
+            cleanup_servers(servers, count);
             return EXIT_FAILURE;
-        } else if(flags.server_directives > 1) {
-            fprintf(stderr, "Multiple server directives specified with -u flag (--path and --host). Ambiguity between which server(s) to test\n");
-            return EXIT_FAILURE;
-        } else {
-            size_t count;
-            Server *servers = NULL;
-
-            if(flags.path) {
-                servers = load_servers(flags.path, &count);
-                if(!servers) {
-                    return EXIT_FAILURE;
-                }
-            } else if(flags.host) {
-                count = 1;
-                servers = malloc(sizeof(Server));
-                if(!servers) {
-                    fprintf(stderr, "Failure allocating memory for server\n");
-                    return EXIT_FAILURE;
-                }
-                servers[0] = (Server){
-                    .city = NULL,
-                    .country = NULL,
-                    .host = flags.host,
-                    .id = -1,
-                    .provider = NULL
-                };
-            } else {
-                fprintf(stderr, "Internal error: server directive specified but neither path nor host found\n");
-                return EXIT_FAILURE;
-            }
-                
-            if(flags.city) {
-                Server *tmp = get_servers_by_city(servers, count, &count);
-
-                cleanup_servers(servers, count);
-                if(!tmp) {
-                    return EXIT_FAILURE;
-                }
-
-                servers = tmp;
-            } else if(flags.country) {
-                Server *tmp = get_servers_by_city(servers, count, &count);
-
-                cleanup_servers(servers, count);
-                if(!tmp) {
-                    return EXIT_FAILURE;
-                }
-                
-                servers = tmp;
-            }
-
-            UploadArgs args = {
-                .servers = servers,
-                .count = count,
-                .timeout = flags.dutimeout > 0 ? flags.dutimeout : 15
-            };
-            if(perform_upload_speed_test(&args) == EXIT_FAILURE) {
-                cleanup_servers(servers, count);
-                return EXIT_FAILURE;
-            }
         }
     }
 
