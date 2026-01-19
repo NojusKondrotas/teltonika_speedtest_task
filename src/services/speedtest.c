@@ -13,6 +13,14 @@ struct curl_slist *add_headers(CURL *curl) {
 
     return headers;
 }
+void curl_upload_setopts(CURL *curl, UploadData *buf, int timeout) {
+    curl_easy_setopt(curl, CURLOPT_POSTFIELDS, buf->buffer);
+    curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, UP_BUFFER_SIZE);
+    curl_easy_setopt(curl, CURLOPT_TIMEOUT, timeout > 0 ? (long)timeout : 15L);
+    curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
+}
 
 void fill_buffer(UploadData *buf) {
     srand(time(NULL));
