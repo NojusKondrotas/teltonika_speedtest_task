@@ -9,6 +9,7 @@ CJSON_DIR = $(SRC_DIR)/cJSON
 
 SOURCES = $(SRC_DIR)/driver.c \
           $(SERVER_DIR)/server.c \
+		  $(SERVICES_DIR)/location.c \
 		  $(SERVICES_DIR)/speedtest.c \
           $(CJSON_DIR)/cJSON.c \
 
