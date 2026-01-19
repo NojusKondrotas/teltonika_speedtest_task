@@ -1,4 +1,5 @@
 #include "driver.h"
+#include "services/location.h"
 #include "server/server.h"
 #include "services/speedtest.h"
 
@@ -250,6 +251,15 @@ int main(int argc, char *argv[]) {
                 return EXIT_FAILURE;
             }
         }
+    }
+
+    if(flags.s_flag) {
+        char *ip = "0";
+        if(get_user_ip(&ip) != EXIT_SUCCESS) {
+            return EXIT_FAILURE;
+        }
+        printf("User IP: %s\n", ip);
+        free(ip);
     }
 
     return EXIT_SUCCESS;
