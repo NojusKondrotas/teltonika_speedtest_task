@@ -15,6 +15,7 @@ struct option long_options[] = {
     {"dutimeout", required_argument, 0, 'T'},
     {"city", required_argument, 0, 'c'},
     {"country", required_argument, 0, 'C'},
+    {"user", no_argument, }, 'U',
     {0, 0, 0, 0}
 };
 
@@ -67,6 +68,9 @@ int parse_cmd_args(int argc, char *argv[], Flags *flags) {
             case 'C':
                 flags->country = optarg;
                 ++flags->server_filters;
+                break;
+            case 'U':
+                flags->user = 1;
                 break;
 
             case '?':

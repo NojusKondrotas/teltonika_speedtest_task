@@ -12,6 +12,7 @@ typedef struct s_driver_flags{
     int dutimeout;
     char *city;
     char *country;
+    int user;
     size_t server_directives;
     size_t server_filters;
 }Flags;
