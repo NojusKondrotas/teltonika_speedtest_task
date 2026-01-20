@@ -7,6 +7,7 @@
 #include <stdlib.h>
 
 #define UP_BUFFER_SIZE (2 * 1024 * 1024)
+#define KB_SIZE 1024
 
 typedef struct s_upload_data{
     char *buffer;
@@ -17,7 +18,7 @@ void curl_upload_setopts(CURL *curl, UploadData *buf, int timeout);
 
 void fill_buffer(UploadData *buf);
 
-char *probe_download_endpoint(CURL *curl, const char *host);
+char *probe_download_endpoint(CURL *curl, const char *host, size_t timeout);
 
 int get_download_speed(Server *servers, size_t count, size_t timeout);
 int get_upload_speed(Server *servers, size_t count, size_t timeout);

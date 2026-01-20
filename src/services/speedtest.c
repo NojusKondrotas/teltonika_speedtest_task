@@ -44,19 +44,18 @@ void fill_buffer(UploadData *buf) {
     }
 }
 
-char *probe_download_endpoint(CURL *curl, const char *host) {
+char *probe_download_endpoint(CURL *curl, const char *host, size_t timeout) {
     CURLcode res;
 
     const char *patterns[3] = {
-        "/download?size=1000000",
-        "/random4000x4000.jpg",
-        "/100MB.bin"
+        "/download?size=2000000",
+        "/2MB.bin"
     };
 
     size_t count = sizeof(patterns)/sizeof(patterns[0]);
     for(size_t i = 0; i < count; i++) {
         curl_easy_reset(curl);
-        curl_download_setopts(curl, 15);
+        curl_download_setopts(curl, timeout);
         struct curl_slist *headers = add_headers(curl);
 
         char url[512];
@@ -73,7 +72,7 @@ char *probe_download_endpoint(CURL *curl, const char *host) {
         curl_off_t dl_size = 0;
         curl_easy_getinfo(curl, CURLINFO_SIZE_DOWNLOAD_T, &dl_size);
 
-        if (dl_size >= 1024) {
+        if (dl_size >= 2 * KB_SIZE) {
             return strdup(url);
         }
     }
@@ -99,7 +98,7 @@ int get_download_speed(Server *servers, size_t count, size_t timeout) {
     printf("Download speeds from specified hosts:\n\n");
     for(size_t i = 0; i < count; ++i) {
         total_time_all = 0, total_data_all = 0;
-        char *host_dl = probe_download_endpoint(curl, servers[i].host);
+        char *host_dl = probe_download_endpoint(curl, servers[i].host, timeout);
         if(!host_dl) {
             fprintf(stderr, "No endpoint for download found on host %s\n\n", servers[i].host);
             continue;
