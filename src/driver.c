@@ -16,6 +16,7 @@ struct option long_options[] = {
     {"city", required_argument, 0, 'c'},
     {"country", required_argument, 0, 'C'},
     {"user", no_argument, 0, 'U'},
+    {"disableSSL", no_argument, 0, 'D'},
     {0, 0, 0, 0}
 };
 
@@ -72,6 +73,9 @@ int parse_cmd_args(int argc, char *argv[], Flags *flags) {
             case 'U':
                 flags->user = 1;
                 break;
+            case 'D':
+                flags->disableSSL = 1;
+                break;
 
             case '?':
                 fprintf(stderr, "Use valid options\n");
@@ -86,12 +90,12 @@ int parse_cmd_args(int argc, char *argv[], Flags *flags) {
 }
 
 int perform_download_speed_test(DownloadArgs *args) {
-    get_download_speed(args->servers, args->count, args->timeout);
+    get_download_speed(args->servers, args->count, args->timeout, args->disableSSL);
     return EXIT_SUCCESS;
 }
 
 int perform_upload_speed_test(UploadArgs *args) {
-    get_upload_speed(args->servers, args->count, args->timeout);
+    get_upload_speed(args->servers, args->count, args->timeout, args->disableSSL);
     return EXIT_SUCCESS;
 }
 
@@ -107,6 +111,8 @@ int main(int argc, char *argv[]) {
         .dutimeout = 0,
         .city = NULL,
         .country = NULL,
+        .user = 0,
+        .disableSSL = 0,
 
         .server_directives = 0,
         .server_filters = 0
@@ -199,7 +205,8 @@ int main(int argc, char *argv[]) {
         DownloadArgs args = {
             .servers = servers,
             .count = s_count,
-            .timeout = flags.dutimeout > 0 ? (size_t)flags.dutimeout : 15L
+            .timeout = flags.dutimeout > 0 ? (size_t)flags.dutimeout : 15L,
+            .disableSSL = flags.disableSSL
         };
         if(perform_download_speed_test(&args) == EXIT_FAILURE) {
             cleanup_servers(servers, s_count);
@@ -211,7 +218,8 @@ int main(int argc, char *argv[]) {
         UploadArgs args = {
             .servers = servers,
             .count = s_count,
-            .timeout = flags.dutimeout > 0 ? (size_t)flags.dutimeout : 15L
+            .timeout = flags.dutimeout > 0 ? (size_t)flags.dutimeout : 15L,
+            .disableSSL = flags.disableSSL
         };
         if(perform_upload_speed_test(&args) == EXIT_FAILURE) {
             cleanup_servers(servers, s_count);

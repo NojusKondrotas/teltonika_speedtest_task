@@ -14,13 +14,13 @@ typedef struct s_upload_data{
 }UploadData;
 
 struct curl_slist *add_headers(CURL *curl);
-void curl_upload_setopts(CURL *curl, UploadData *buf, int timeout);
+void curl_upload_setopts(CURL *curl, UploadData *buf, size_t timeout, int disableSSL);
 
 void fill_buffer(UploadData *buf);
 
-char *probe_download_endpoint(CURL *curl, const char *host, size_t timeout);
+char *probe_download_endpoint(CURL *curl, const char *host, size_t timeout, int disableSSL);
 
-int get_download_speed(Server *servers, size_t count, size_t timeout);
-int get_upload_speed(Server *servers, size_t count, size_t timeout);
+int get_download_speed(Server *servers, size_t count, size_t timeout, int disableSSL);
+int get_upload_speed(Server *servers, size_t count, size_t timeout, int disableSSL);
 
 #endif

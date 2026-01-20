@@ -18,23 +18,27 @@ struct curl_slist *add_headers(CURL *curl) {
     return headers;
 }
 
-void curl_download_setopts(CURL *curl, int timeout) {
+void curl_download_setopts(CURL *curl, size_t timeout, int disableSSL) {
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, discard_cb);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, NULL);
     curl_easy_setopt(curl, CURLOPT_TIMEOUT, timeout);
     curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
-    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
-    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
+    if(disableSSL) {
+        curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
+        curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
+    }
 }
 
-void curl_upload_setopts(CURL *curl, UploadData *buf, int timeout) {
+void curl_upload_setopts(CURL *curl, UploadData *buf, size_t timeout, int disableSSL) {
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, discard_cb);
     curl_easy_setopt(curl, CURLOPT_POSTFIELDS, buf->buffer);
     curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, UP_BUFFER_SIZE);
     curl_easy_setopt(curl, CURLOPT_TIMEOUT, timeout);
     curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
-    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
-    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
+    if(disableSSL) {
+        curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
+        curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
+    }
 }
 
 void fill_buffer(UploadData *buf) {
@@ -44,7 +48,7 @@ void fill_buffer(UploadData *buf) {
     }
 }
 
-char *probe_download_endpoint(CURL *curl, const char *host, size_t timeout) {
+char *probe_download_endpoint(CURL *curl, const char *host, size_t timeout, int disableSSL) {
     CURLcode res;
 
     const char *patterns[3] = {
@@ -53,7 +57,7 @@ char *probe_download_endpoint(CURL *curl, const char *host, size_t timeout) {
     };
 
     curl_easy_reset(curl);
-    curl_download_setopts(curl, timeout);
+    curl_download_setopts(curl, timeout, disableSSL);
     struct curl_slist *headers = add_headers(curl);
 
     size_t count = sizeof(patterns)/sizeof(patterns[0]);
@@ -80,7 +84,7 @@ char *probe_download_endpoint(CURL *curl, const char *host, size_t timeout) {
     return NULL;
 }
 
-int get_download_speed(Server *servers, size_t count, size_t timeout) {
+int get_download_speed(Server *servers, size_t count, size_t timeout, int disableSSL) {
     CURL *curl;
 
     curl = curl_easy_init();
@@ -95,7 +99,7 @@ int get_download_speed(Server *servers, size_t count, size_t timeout) {
     printf("Download speeds from specified hosts:\n\n");
     for(size_t i = 0; i < count; ++i) {
         total_time_all = 0, total_data_all = 0;
-        char *host_dl = probe_download_endpoint(curl, servers[i].host, timeout);
+        char *host_dl = probe_download_endpoint(curl, servers[i].host, timeout, disableSSL);
         if(!host_dl) {
             fprintf(stderr, "No endpoint for download found on host %s\n\n", servers[i].host);
             continue;
@@ -103,7 +107,7 @@ int get_download_speed(Server *servers, size_t count, size_t timeout) {
         printf("Using endpoint %s\n", host_dl);
         curl_easy_reset(curl);
         curl_easy_setopt(curl, CURLOPT_URL, host_dl);
-        curl_download_setopts(curl, timeout);
+        curl_download_setopts(curl, timeout, disableSSL);
         struct curl_slist *headers = add_headers(curl);
 
         for(size_t req = 0; req < max_reqs; ++req) {
@@ -159,7 +163,7 @@ int get_download_speed(Server *servers, size_t count, size_t timeout) {
     return EXIT_SUCCESS;
 }
 
-int get_upload_speed(Server *servers, size_t count, size_t timeout) {
+int get_upload_speed(Server *servers, size_t count, size_t timeout, int disableSSL) {
     CURL *curl;
     CURLcode res;
     UploadData buf;
@@ -176,7 +180,7 @@ int get_upload_speed(Server *servers, size_t count, size_t timeout) {
         return EXIT_FAILURE;
     }
 
-    curl_upload_setopts(curl, &buf, timeout);
+    curl_upload_setopts(curl, &buf, timeout, disableSSL);
     struct curl_slist *headers = add_headers(curl);
 
     size_t max_reqs = 5;

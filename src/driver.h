@@ -13,6 +13,7 @@ typedef struct s_driver_flags{
     char *city;
     char *country;
     int user;
+    int disableSSL;
     size_t server_directives;
     size_t server_filters;
 }Flags;
@@ -21,12 +22,14 @@ typedef struct s_download_args{
     Server *servers;
     size_t count;
     size_t timeout;
+    int disableSSL;
 }DownloadArgs;
 
 typedef struct s_upload_args{
     Server *servers;
     size_t count;
     size_t timeout;
+    int disableSSL;
 }UploadArgs;
 
 int parse_cmd_args(int argc, char *argv[], Flags *flags);
