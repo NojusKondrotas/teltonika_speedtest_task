@@ -202,7 +202,7 @@ Server *get_servers_by_city(Server *servers, size_t n, char *city, size_t *filte
             }
             
             filtered = tmp;
-            filtered[(*filtered_count)++] = servers[i];
+            filtered[(*filtered_count)++] = deepcopy_server(servers[i]);
         }
     }
 
@@ -223,7 +223,7 @@ Server *get_servers_by_country(Server *servers, size_t n, char *country, size_t 
             }
             
             filtered = tmp;
-            filtered[(*filtered_count)++] = servers[i];
+            filtered[(*filtered_count)++] = deepcopy_server(servers[i]);
         }
     }
 
