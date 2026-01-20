@@ -4,6 +4,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+static size_t discard_cb(void *ptr, size_t size, size_t nmemb, void *userdata) {
+    return size * nmemb;
+}
+
 struct curl_slist *add_headers(CURL *curl) {
     struct curl_slist *headers = NULL;
     headers = curl_slist_append(headers, "User-Agent: Mozilla/5.0");
@@ -13,7 +17,17 @@ struct curl_slist *add_headers(CURL *curl) {
 
     return headers;
 }
+
+void curl_download_setopts(CURL *curl, int timeout) {
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, discard_cb);
+    curl_easy_setopt(curl, CURLOPT_TIMEOUT, timeout > 0 ? (long)timeout : 15L);
+    curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
+}
+
 void curl_upload_setopts(CURL *curl, UploadData *buf, int timeout) {
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, discard_cb);
     curl_easy_setopt(curl, CURLOPT_POSTFIELDS, buf->buffer);
     curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, UP_BUFFER_SIZE);
     curl_easy_setopt(curl, CURLOPT_TIMEOUT, timeout > 0 ? (long)timeout : 15L);
@@ -30,6 +44,60 @@ void fill_buffer(UploadData *buf) {
 }
 
 int get_download_speed(Server *servers, size_t count) {
+    CURL *curl;
+
+    curl = curl_easy_init();
+    if(!curl) {
+        fprintf(stderr, "curl init failed\n");
+        return EXIT_FAILURE;
+    }
+
+    struct curl_slist *headers = add_headers(curl);
+    curl_download_setopts(curl, 15);
+
+    int max_reqs = 5;
+    curl_off_t total_time_all, total_data_all;
+    printf("Download speeds from specified hosts:\n\n");
+    for(size_t i = 0; i < count; ++i) {
+        total_time_all = 0, total_data_all = 0;
+        curl_easy_setopt(curl, CURLOPT_URL, servers[i].host);
+
+        for(int req = 0; req < max_reqs; ++req) {
+            CURLcode res = curl_easy_perform(curl);
+
+            if(res == CURLE_OK) {
+                curl_off_t total_time;
+                curl_off_t dl_size;
+                curl_easy_getinfo(curl, CURLINFO_TOTAL_TIME_T, &total_time);
+                curl_easy_getinfo(curl, CURLINFO_SIZE_DOWNLOAD_T, &dl_size);
+                total_time_all += total_time;
+                total_data_all += dl_size;
+            } else if(res == CURLE_OPERATION_TIMEDOUT) {
+                fprintf(stderr, "Timeout from %s\n", servers[i].host);
+                break;
+            } else if(res == CURLE_COULDNT_CONNECT) {
+                fprintf(stderr, "Connection timeout to %s\n", servers[i].host);
+                break;
+            } else if(res == CURLE_COULDNT_RESOLVE_HOST) {
+                fprintf(stderr, "Could not resolve hostname for %s\n", servers[i].host);
+                break;
+            } else {
+                fprintf(stderr, "Failed to download from %s: %s\n", servers[i].host, curl_easy_strerror(res));
+            }
+        }
+
+        if(total_time_all > 0 && total_data_all > 0) {
+            double total_time_seconds = (double)total_time_all / 1000000.0;
+            double mbps = ((double)total_data_all * 8.0) / 1000000.0 / total_time_seconds;
+
+            printf("%s: %.2f Mbps\n\n", servers[i].host, mbps);
+        } else {
+            printf("No successful downloads to calculate speed.\n\n");
+        }
+    }
+
+    curl_slist_free_all(headers);
+    curl_easy_cleanup(curl);
     return EXIT_SUCCESS;
 }
 
@@ -45,6 +113,7 @@ int get_upload_speed(Server *servers, size_t count) {
 
     curl = curl_easy_init();
     if(!curl) {
+        fprintf(stderr, "curl init failed\n");
         free(buf.buffer);
         return EXIT_FAILURE;
     }
@@ -67,8 +136,7 @@ int get_upload_speed(Server *servers, size_t count) {
                 curl_easy_getinfo(curl, CURLINFO_TOTAL_TIME_T, &total_time);
                 total_time_all += total_time;
                 total_data_all += UP_BUFFER_SIZE;
-                } 
-            else if(res == CURLE_OPERATION_TIMEDOUT) {
+            } else if(res == CURLE_OPERATION_TIMEDOUT) {
                 fprintf(stderr, "Timeout to %s\n", servers[i].host);
                 break;
             } else if(res == CURLE_COULDNT_CONNECT) {
