@@ -205,7 +205,7 @@ int main(int argc, char *argv[]) {
         DownloadArgs args = {
             .servers = servers,
             .count = s_count,
-            .timeout = flags.dutimeout > 0 ? (size_t)flags.dutimeout : 15L,
+            .timeout = flags.dutimeout > 0 ? (size_t)flags.dutimeout : DEFAULT_TIMEOUT,
             .disableSSL = flags.disableSSL
         };
         if(perform_download_speed_test(&args) == EXIT_FAILURE) {
@@ -218,7 +218,7 @@ int main(int argc, char *argv[]) {
         UploadArgs args = {
             .servers = servers,
             .count = s_count,
-            .timeout = flags.dutimeout > 0 ? (size_t)flags.dutimeout : 15L,
+            .timeout = flags.dutimeout > 0 ? (size_t)flags.dutimeout : DEFAULT_TIMEOUT,
             .disableSSL = flags.disableSSL
         };
         if(perform_upload_speed_test(&args) == EXIT_FAILURE) {

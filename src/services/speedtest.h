@@ -9,6 +9,8 @@
 #define UP_BUFFER_SIZE (2 * 1024 * 1024)
 #define KB_SIZE 1024
 
+#define DEFAULT_TIMEOUT 15L
+
 typedef struct s_upload_data{
     char *buffer;
 }UploadData;
