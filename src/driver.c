@@ -161,7 +161,8 @@ int main(int argc, char *argv[]) {
 
     if(flags.server_filters == 1) {
         if(flags.city) {
-            Server *tmp = get_servers_by_city(servers, s_count, flags.city, &s_count);
+            size_t new_count;
+            Server *tmp = get_servers_by_city(servers, s_count, flags.city, &new_count);
 
             cleanup_servers(servers, s_count);
             if(!tmp) {
@@ -169,15 +170,18 @@ int main(int argc, char *argv[]) {
             }
 
             servers = tmp;
+            s_count = new_count;
         } else if(flags.country) {
-            Server *tmp = get_servers_by_country(servers, s_count, flags.country, &s_count);
+            size_t new_count;
+            Server *tmp = get_servers_by_country(servers, s_count, flags.country, &new_count);
 
             cleanup_servers(servers, s_count);
             if(!tmp) {
                 return EXIT_FAILURE;
             }
-            
+
             servers = tmp;
+            s_count = new_count;
         } else {
             fprintf(stderr, "Internal error: server filter specified but neither country nor city found\n");
             return EXIT_FAILURE;
