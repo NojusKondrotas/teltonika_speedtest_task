@@ -17,6 +17,8 @@ void curl_upload_setopts(CURL *curl, UploadData *buf, int timeout);
 
 void fill_buffer(UploadData *buf);
 
+char *probe_download_endpoint(CURL *curl, const char *host);
+
 int get_download_speed(Server *servers, size_t count);
 int get_upload_speed(Server *servers, size_t count);
 
