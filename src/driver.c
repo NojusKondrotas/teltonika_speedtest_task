@@ -12,7 +12,7 @@
 struct option long_options[] = {
     {"path", required_argument, 0, 'P'},
     {"host", required_argument, 0, 'H'},
-    {"dutimeout", required_argument, 0, 'T'},
+    {"timeout", required_argument, 0, 'T'},
     {"city", required_argument, 0, 'c'},
     {"country", required_argument, 0, 'C'},
     {"user", no_argument, 0, 'U'},
@@ -46,12 +46,12 @@ int parse_cmd_args(int argc, char *argv[], Flags *flags) {
                 val = strtol(optarg, &endptr, 10);
 
                 if(endptr == optarg) {
-                    fprintf(stderr, "ERROR: --dutimeout: '%s' is not a valid number\n", optarg);
+                    fprintf(stderr, "ERROR: --timeout: '%s' is not a valid number\n", optarg);
                     return EXIT_FAILURE;
                 }
 
                 if(*endptr != '\0') {
-                    fprintf(stderr, "ERROR: --dutimeout: '%s' contains extra non-numerical characters\n", optarg);
+                    fprintf(stderr, "ERROR: --timeout: '%s' contains extra non-numerical characters\n", optarg);
                     return EXIT_FAILURE;
                 }
 
