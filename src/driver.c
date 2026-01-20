@@ -86,12 +86,12 @@ int parse_cmd_args(int argc, char *argv[], Flags *flags) {
 }
 
 int perform_download_speed_test(DownloadArgs *args) {
-    get_download_speed(args->servers, args->count, 5L);
+    get_download_speed(args->servers, args->count, args->timeout);
     return EXIT_SUCCESS;
 }
 
 int perform_upload_speed_test(UploadArgs *args) {
-    get_upload_speed(args->servers, args->count);
+    get_upload_speed(args->servers, args->count, args->timeout);
     return EXIT_SUCCESS;
 }
 
@@ -123,6 +123,11 @@ int main(int argc, char *argv[]) {
 
     if(flags.server_filters > 1) {
         fprintf(stderr, "Multiple server filters specified (--city and --country). Ambiguity between which one to apply\n");
+        return EXIT_FAILURE;
+    }
+
+    if(flags.dutimeout < 0) {
+        fprintf(stderr, "Timeout cannot be < 0\n");
         return EXIT_FAILURE;
     }
     
@@ -190,7 +195,7 @@ int main(int argc, char *argv[]) {
         DownloadArgs args = {
             .servers = servers,
             .count = s_count,
-            .timeout = flags.dutimeout > 0 ? flags.dutimeout : 15
+            .timeout = flags.dutimeout > 0 ? (size_t)flags.dutimeout : 15L
         };
         if(perform_download_speed_test(&args) == EXIT_FAILURE) {
             cleanup_servers(servers, s_count);
@@ -202,7 +207,7 @@ int main(int argc, char *argv[]) {
         UploadArgs args = {
             .servers = servers,
             .count = s_count,
-            .timeout = flags.dutimeout > 0 ? flags.dutimeout : 15
+            .timeout = flags.dutimeout > 0 ? (size_t)flags.dutimeout : 15L
         };
         if(perform_upload_speed_test(&args) == EXIT_FAILURE) {
             cleanup_servers(servers, s_count);

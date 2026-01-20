@@ -126,7 +126,7 @@ int get_download_speed(Server *servers, size_t count, size_t timeout) {
                     break;
                 }
                 curl_off_t left_time = (timeout - total_time_all) / 1e6;
-                if(left_time > 0) {
+                if(left_time > 1) {
                     curl_easy_setopt(curl, CURLOPT_TIMEOUT, left_time);
                 } else {
                     fprintf(stderr, "Timeout from %s, %zu requests processed\n", servers[i].host, req);
@@ -164,7 +164,7 @@ int get_download_speed(Server *servers, size_t count, size_t timeout) {
     return EXIT_SUCCESS;
 }
 
-int get_upload_speed(Server *servers, size_t count) {
+int get_upload_speed(Server *servers, size_t count, size_t timeout) {
     CURL *curl;
     CURLcode res;
     UploadData buf;
@@ -182,16 +182,17 @@ int get_upload_speed(Server *servers, size_t count) {
     }
 
     struct curl_slist *headers = add_headers(curl);
-    curl_upload_setopts(curl, &buf, 15L);
 
-    int max_reqs = 5;
+    size_t max_reqs = 5;
     curl_off_t total_time_all, total_data_all;
+    curl_off_t max_total_time = timeout * 1e6;
     printf("Upload speeds to specified hosts:\n\n");
     for(size_t i = 0; i < count; ++i) {
         total_time_all = 0, total_data_all = 0;
         curl_easy_setopt(curl, CURLOPT_URL, servers[i].host);
+        curl_upload_setopts(curl, &buf, timeout);
 
-        for(int req = 0; req < max_reqs; ++req) {
+        for(size_t req = 0; req < max_reqs; ++req) {
             res = curl_easy_perform(curl);
 
             if(res == CURLE_OK) {
@@ -199,6 +200,18 @@ int get_upload_speed(Server *servers, size_t count) {
                 curl_easy_getinfo(curl, CURLINFO_TOTAL_TIME_T, &total_time);
                 total_time_all += total_time;
                 total_data_all += UP_BUFFER_SIZE;
+
+                if(total_time_all >= max_total_time) {
+                    fprintf(stderr, "Timeout to %s, %zu requests processed\n", servers[i].host, req);
+                    break;
+                }
+                curl_off_t left_time = (timeout - total_time_all) / 1e6;
+                if(left_time > 1) {
+                    curl_easy_setopt(curl, CURLOPT_TIMEOUT, left_time);
+                } else {
+                    fprintf(stderr, "Timeout to %s, %zu requests processed\n", servers[i].host, req);
+                    break;
+                }
             } else if(res == CURLE_OPERATION_TIMEDOUT) {
                 fprintf(stderr, "Timeout to %s\n", servers[i].host);
                 break;
