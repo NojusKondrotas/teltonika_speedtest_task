@@ -96,6 +96,7 @@ int get_user_location(char *ip, char **city, char **country) {
 }
 
 int get_user_ip(char **ip) {
+    HttpResponse response = {0};
     *ip = NULL;
 
     CURL *curl = curl_easy_init();
@@ -106,7 +107,7 @@ int get_user_ip(char **ip) {
 
     curl_easy_setopt(curl, CURLOPT_URL, "https://api.ipify.org");
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_cb);
-    curl_easy_setopt(curl, CURLOPT_WRITEDATA, ip);
+    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
 
     CURLcode res = curl_easy_perform(curl);
     if(res != CURLE_OK) {
@@ -115,6 +116,7 @@ int get_user_ip(char **ip) {
         return EXIT_FAILURE;
     }
 
+    *ip = response.data;
     curl_easy_cleanup(curl);
     return EXIT_SUCCESS;
 }
