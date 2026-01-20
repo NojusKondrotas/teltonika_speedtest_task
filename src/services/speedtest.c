@@ -91,7 +91,7 @@ int get_download_speed(Server *servers, size_t count, size_t timeout) {
     }
 
     struct curl_slist *headers = add_headers(curl);
-    curl_download_setopts(curl, 15);
+    curl_download_setopts(curl, timeout);
 
     size_t max_reqs = 5;
     curl_off_t total_time_all, total_data_all;
@@ -107,7 +107,7 @@ int get_download_speed(Server *servers, size_t count, size_t timeout) {
         printf("Using endpoint %s\n", host_dl);
         curl_easy_reset(curl);
         curl_easy_setopt(curl, CURLOPT_URL, host_dl);
-        curl_download_setopts(curl, 15);
+        curl_download_setopts(curl, timeout);
         struct curl_slist *headers_local = add_headers(curl);
 
         for(size_t req = 0; req < max_reqs; ++req) {
