@@ -52,19 +52,18 @@ char *probe_download_endpoint(CURL *curl, const char *host, size_t timeout) {
         "/2MB.bin"
     };
 
+    curl_easy_reset(curl);
+    curl_download_setopts(curl, timeout);
+    struct curl_slist *headers = add_headers(curl);
+
     size_t count = sizeof(patterns)/sizeof(patterns[0]);
     for(size_t i = 0; i < count; i++) {
-        curl_easy_reset(curl);
-        curl_download_setopts(curl, timeout);
-        struct curl_slist *headers = add_headers(curl);
-
         char url[512];
         snprintf(url, sizeof(url), "%s%s", host, patterns[i]);
 
         curl_easy_setopt(curl, CURLOPT_URL, url);
 
         res = curl_easy_perform(curl);
-        curl_slist_free_all(headers);
         if(res != CURLE_OK) {
             continue;
         }
@@ -77,6 +76,7 @@ char *probe_download_endpoint(CURL *curl, const char *host, size_t timeout) {
         }
     }
 
+    curl_slist_free_all(headers);
     return NULL;
 }
 
@@ -88,9 +88,6 @@ int get_download_speed(Server *servers, size_t count, size_t timeout) {
         fprintf(stderr, "curl init failed\n");
         return EXIT_FAILURE;
     }
-
-    struct curl_slist *headers = add_headers(curl);
-    curl_download_setopts(curl, timeout);
 
     size_t max_reqs = 5;
     curl_off_t total_time_all, total_data_all;
@@ -107,7 +104,7 @@ int get_download_speed(Server *servers, size_t count, size_t timeout) {
         curl_easy_reset(curl);
         curl_easy_setopt(curl, CURLOPT_URL, host_dl);
         curl_download_setopts(curl, timeout);
-        struct curl_slist *headers_local = add_headers(curl);
+        struct curl_slist *headers = add_headers(curl);
 
         for(size_t req = 0; req < max_reqs; ++req) {
             CURLcode res = curl_easy_perform(curl);
@@ -145,7 +142,7 @@ int get_download_speed(Server *servers, size_t count, size_t timeout) {
             }
         }
 
-        curl_slist_free_all(headers_local);
+        curl_slist_free_all(headers);
         free(host_dl);
 
         if(total_time_all > 0 && total_data_all > 0) {
@@ -158,7 +155,6 @@ int get_download_speed(Server *servers, size_t count, size_t timeout) {
         }
     }
 
-    curl_slist_free_all(headers);
     curl_easy_cleanup(curl);
     return EXIT_SUCCESS;
 }
@@ -180,6 +176,7 @@ int get_upload_speed(Server *servers, size_t count, size_t timeout) {
         return EXIT_FAILURE;
     }
 
+    curl_upload_setopts(curl, &buf, timeout);
     struct curl_slist *headers = add_headers(curl);
 
     size_t max_reqs = 5;
@@ -189,7 +186,6 @@ int get_upload_speed(Server *servers, size_t count, size_t timeout) {
     for(size_t i = 0; i < count; ++i) {
         total_time_all = 0, total_data_all = 0;
         curl_easy_setopt(curl, CURLOPT_URL, servers[i].host);
-        curl_upload_setopts(curl, &buf, timeout);
 
         for(size_t req = 0; req < max_reqs; ++req) {
             res = curl_easy_perform(curl);
