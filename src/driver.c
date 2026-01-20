@@ -86,7 +86,7 @@ int parse_cmd_args(int argc, char *argv[], Flags *flags) {
 }
 
 int perform_download_speed_test(DownloadArgs *args) {
-    get_download_speed(args->servers, args->count);
+    get_download_speed(args->servers, args->count, 5L);
     return EXIT_SUCCESS;
 }
 

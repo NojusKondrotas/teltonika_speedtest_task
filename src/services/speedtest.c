@@ -21,7 +21,7 @@ struct curl_slist *add_headers(CURL *curl) {
 void curl_download_setopts(CURL *curl, int timeout) {
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, discard_cb);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, NULL);
-    curl_easy_setopt(curl, CURLOPT_TIMEOUT, timeout > 0 ? (long)timeout : 15L);
+    curl_easy_setopt(curl, CURLOPT_TIMEOUT, timeout);
     curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
     curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
     curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
@@ -31,7 +31,7 @@ void curl_upload_setopts(CURL *curl, UploadData *buf, int timeout) {
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, discard_cb);
     curl_easy_setopt(curl, CURLOPT_POSTFIELDS, buf->buffer);
     curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, UP_BUFFER_SIZE);
-    curl_easy_setopt(curl, CURLOPT_TIMEOUT, timeout > 0 ? (long)timeout : 15L);
+    curl_easy_setopt(curl, CURLOPT_TIMEOUT, timeout);
     curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
     curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
     curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
@@ -81,7 +81,7 @@ char *probe_download_endpoint(CURL *curl, const char *host) {
     return NULL;
 }
 
-int get_download_speed(Server *servers, size_t count) {
+int get_download_speed(Server *servers, size_t count, size_t timeout) {
     CURL *curl;
 
     curl = curl_easy_init();
@@ -93,14 +93,15 @@ int get_download_speed(Server *servers, size_t count) {
     struct curl_slist *headers = add_headers(curl);
     curl_download_setopts(curl, 15);
 
-    int max_reqs = 5;
+    size_t max_reqs = 5;
     curl_off_t total_time_all, total_data_all;
+    curl_off_t max_total_time = timeout * 1e6;
     printf("Download speeds from specified hosts:\n\n");
     for(size_t i = 0; i < count; ++i) {
         total_time_all = 0, total_data_all = 0;
         char *host_dl = probe_download_endpoint(curl, servers[i].host);
         if(!host_dl) {
-            fprintf(stderr, "No endpoint for download found on host %s\n", servers[i].host);
+            fprintf(stderr, "No endpoint for download found on host %s\n\n", servers[i].host);
             continue;
         }
         printf("Using endpoint %s\n", host_dl);
@@ -109,7 +110,7 @@ int get_download_speed(Server *servers, size_t count) {
         curl_download_setopts(curl, 15);
         struct curl_slist *headers_local = add_headers(curl);
 
-        for(int req = 0; req < max_reqs; ++req) {
+        for(size_t req = 0; req < max_reqs; ++req) {
             CURLcode res = curl_easy_perform(curl);
 
             if(res == CURLE_OK) {
@@ -119,6 +120,18 @@ int get_download_speed(Server *servers, size_t count) {
                 curl_easy_getinfo(curl, CURLINFO_SIZE_DOWNLOAD_T, &dl_size);
                 total_time_all += total_time;
                 total_data_all += dl_size;
+
+                if(total_time_all >= max_total_time) {
+                    fprintf(stderr, "Timeout from %s, %zu requests processed\n", servers[i].host, req);
+                    break;
+                }
+                curl_off_t left_time = (timeout - total_time_all) / 1e6;
+                if(left_time > 0) {
+                    curl_easy_setopt(curl, CURLOPT_TIMEOUT, left_time);
+                } else {
+                    fprintf(stderr, "Timeout from %s, %zu requests processed\n", servers[i].host, req);
+                    break;
+                }
             } else if(res == CURLE_OPERATION_TIMEDOUT) {
                 fprintf(stderr, "Timeout from %s\n", servers[i].host);
                 break;
@@ -137,8 +150,8 @@ int get_download_speed(Server *servers, size_t count) {
         free(host_dl);
 
         if(total_time_all > 0 && total_data_all > 0) {
-            double total_time_seconds = (double)total_time_all / 1000000.0;
-            double mbps = ((double)total_data_all * 8.0) / 1000000.0 / total_time_seconds;
+            double total_time_seconds = (double)total_time_all / 1e6;
+            double mbps = (total_data_all * 8.0) / 1e6 / total_time_seconds;
 
             printf("%s: %.2f Mbps\n\n", servers[i].host, mbps);
         } else {
