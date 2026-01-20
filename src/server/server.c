@@ -1,5 +1,6 @@
 #include "server.h"
 #include "../libs/cJSON/cJSON.h"
+#include "../runtime/json_parser.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -126,32 +127,7 @@ char *remove_port(char *host) {
 }
 
 Server *load_servers(const char *filepath, size_t *count) {
-    FILE *fptr;
-
-    if((fptr = fopen(filepath, "r")) == NULL) {
-        fprintf(stderr, "Failure opening servers' file: %s\n", filepath);
-        return NULL;
-    }
-
-    long file_size = 0;
-    fseek(fptr, 0, SEEK_END);
-    file_size = ftell(fptr);
-    fseek(fptr, 0, SEEK_SET);
-
-    char *json_str = malloc(file_size + 1);
-    if(!json_str) {
-        fprintf(stderr, "Failure allocating memory for json reading\n");
-        fclose(fptr);
-        return NULL;
-    }
-
-    fread(json_str, 1, file_size, fptr);
-    json_str[file_size] = '\0';
-    fclose(fptr);
-
-    cJSON *json = cJSON_Parse(json_str);
-    free(json_str);
-
+    cJSON *json = parse_json_file(filepath);
     if(!json) {
         fprintf(stderr, "Failure parsing JSON\n");
         return NULL;
