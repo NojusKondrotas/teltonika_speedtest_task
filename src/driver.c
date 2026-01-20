@@ -263,5 +263,6 @@ int main(int argc, char *argv[]) {
         }
     }
 
+    cleanup_servers(servers, s_count);
     return EXIT_SUCCESS;
 }
