@@ -30,9 +30,9 @@ int get_user_location(char *ip, char **city, char **country) {
 
     char url[64];
     if(ip && ip[0] != '\0') {
-        snprintf(url, sizeof(url), "http://ip-api.com/json/%s", ip);
+        snprintf(url, sizeof(url), "ip-api.com/json/%s", ip);
     } else {
-        snprintf(url, sizeof(url), "http://ip-api.com/json/");
+        snprintf(url, sizeof(url), "ip-api.com/json/");
     }
 
     CURL *curl = curl_easy_init();
@@ -105,7 +105,7 @@ int get_user_ip(char **ip) {
         return EXIT_FAILURE;
     }
 
-    curl_easy_setopt(curl, CURLOPT_URL, "https://api.ipify.org");
+    curl_easy_setopt(curl, CURLOPT_URL, "api.ipify.org");
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_cb);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
 
