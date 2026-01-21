@@ -141,7 +141,7 @@ int main(int argc, char *argv[]) {
 
         .path = NULL,
         .host = NULL,
-        .dutimeout = 0,
+        .dutimeout = 15,
         .city = NULL,
         .country = NULL,
         .best_city = NULL,
@@ -174,8 +174,8 @@ int main(int argc, char *argv[]) {
         return EXIT_FAILURE;
     }
 
-    if(flags.dutimeout < 0) {
-        fprintf(stderr, "Timeout cannot be < 0\n");
+    if(flags.dutimeout <= 0) {
+        fprintf(stderr, "Timeout must be positive\n");
         return EXIT_FAILURE;
     }
 
