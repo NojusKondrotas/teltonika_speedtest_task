@@ -247,6 +247,8 @@ int main(int argc, char *argv[]) {
         free(buf.buffer);
         curl_slist_free_all(headers_DL);
         curl_slist_free_all(headers_UL);
+        curl_easy_cleanup(curl_DL);
+        curl_easy_cleanup(curl_UL);
 
         char *ip;
         if(get_user_ip(&ip) == EXIT_FAILURE) {
