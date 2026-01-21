@@ -114,6 +114,24 @@ int perform_upload_speed_test(UploadArgs *args) {
     return EXIT_SUCCESS;
 }
 
+int get_host_location_driver(char *host, char **clean_host, char **city, char **country) {
+    *clean_host = remove_port(host);
+    if(!(*clean_host)) {
+        fprintf(stderr, "Failed to remove port for host %s\n", host);
+        return EXIT_FAILURE;
+    }
+
+    return get_user_location(*clean_host, city, country);
+}
+
+char *get_user_ip_driver() {
+    char *ip = NULL;
+    if(get_user_ip(&ip) == EXIT_FAILURE) {
+        return NULL;
+    }
+    return ip;
+}
+
 int main(int argc, char *argv[]) {
     Flags flags = {
         .d_flag = 0,
@@ -258,13 +276,7 @@ int main(int argc, char *argv[]) {
             if(mbpsUL != -1) {
                 printf("Upload speed:     \t%.2f Mbps\n", mbpsUL);
             }
-            char *host_clean = remove_port(servers[i].host);
-            if (!host_clean) {
-                fprintf(stderr, "Failed to remove port for host %s\n", servers[i].host);
-                continue;
-            }
             printf("Tested host: %s\n\n", servers[i].host);
-            free(host_clean);
         }
 
         if(flags.best_city) {
@@ -349,22 +361,23 @@ int main(int argc, char *argv[]) {
         curl_easy_cleanup(curl_DL);
         curl_easy_cleanup(curl_UL);
 
-        char *ip;
-        if(get_user_ip(&ip) == EXIT_FAILURE) {
+        char *ip = get_user_ip_driver();
+        if(!ip) {
+            cleanup_servers(servers, s_count);
             return EXIT_FAILURE;
         }
         printf("User IP: %s\n", ip);
         free(ip);
 
-        char *city, *country;
-        if(get_user_location("", &city, &country) == EXIT_FAILURE) {
+        char *clean_host, *city, *country;
+        if(get_host_location_driver("", &clean_host, &city, &country) == EXIT_FAILURE) {
             cleanup_servers(servers, s_count);
             return EXIT_FAILURE;
         }
-
         printf("Country: %s, City: %s\n", country, city);
         free(city);
         free(country);
+
         cleanup_servers(servers, s_count);
         printf("\n");
         return EXIT_SUCCESS;
@@ -404,8 +417,9 @@ int main(int argc, char *argv[]) {
     }
 
     if(flags.s_flag) {
-        char *ip;
-        if(get_user_ip(&ip) == EXIT_FAILURE) {
+        char *ip = get_user_ip_driver();
+        if(!ip) {
+            cleanup_servers(servers, s_count);
             return EXIT_FAILURE;
         }
         printf("User IP: %s\n\n", ip);
@@ -413,9 +427,9 @@ int main(int argc, char *argv[]) {
     }
 
     if(flags.l_flag) {
-        char *city = NULL, *country = NULL;
+        char *clean_host = NULL, *city = NULL, *country = NULL;
         if(flags.user || (!flags.path && !flags.host)) {
-            if(get_user_location("", &city, &country) == EXIT_FAILURE) {
+            if(get_host_location_driver("", &clean_host, &city, &country) == EXIT_FAILURE) {
                 free(city);
                 free(country);
                 cleanup_servers(servers, s_count);
@@ -424,21 +438,14 @@ int main(int argc, char *argv[]) {
             printf("User location:\nCountry: %s, City: %s\n", country, city);
             free(city);
             free(country);
+            city = country = NULL;
             printf("\n");
         } else {
-            char *host_clean;
             for(size_t i = 0; i < s_count; ++i) {
-                host_clean = remove_port(servers[i].host);
-                if (!host_clean) {
-                    fprintf(stderr, "Failed to remove port for host %s\n", servers[i].host);
-                    continue;
+                if(get_host_location_driver(servers[i].host, &clean_host, &city, &country) == EXIT_SUCCESS) {
+                    printf("Host's %s location:\nCountry: %s, City: %s\n", clean_host, country, city);
                 }
 
-                if (get_user_location(host_clean, &city, &country) == EXIT_SUCCESS) {
-                    printf("Host's %s location:\nCountry: %s, City: %s\n", host_clean, country, city);
-                }
-
-                free(host_clean);
                 free(city);
                 free(country);
                 city = country = NULL;

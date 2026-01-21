@@ -38,6 +38,10 @@ typedef struct s_upload_args{
 
 int parse_cmd_args(int argc, char *argv[], Flags *flags);
 
+int get_host_location_driver(char *host, char **clean_host, char **city, char **country);
+
+char *get_user_ip_driver();
+
 int perform_download_speed_test(DownloadArgs *args);
 
 int perform_upload_speed_test(UploadArgs *args);
