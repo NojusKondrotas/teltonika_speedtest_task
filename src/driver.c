@@ -3,6 +3,7 @@
 #include "server/server.h"
 #include "services/speedtest.h"
 
+#include <curl/curl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -17,6 +18,7 @@ struct option long_options[] = {
     {"country", required_argument, 0, 'C'},
     {"user", no_argument, 0, 'U'},
     {"disableSSL", no_argument, 0, 'D'},
+    {"joint", no_argument, 0, 'J'},
     {0, 0, 0, 0}
 };
 
@@ -76,6 +78,9 @@ int parse_cmd_args(int argc, char *argv[], Flags *flags) {
             case 'D':
                 flags->disableSSL = 1;
                 break;
+            case 'J':
+                flags->joint = 1;
+                break;
 
             case '?':
                 fprintf(stderr, "Use valid options\n");
@@ -113,6 +118,7 @@ int main(int argc, char *argv[]) {
         .country = NULL,
         .user = 0,
         .disableSSL = 0,
+        .joint = 0,
 
         .server_directives = 0,
         .server_filters = 0
@@ -192,6 +198,75 @@ int main(int argc, char *argv[]) {
             fprintf(stderr, "Internal error: server filter specified but neither country nor city found\n");
             return EXIT_FAILURE;
         }
+    }
+
+    if(flags.joint) {
+        if(flags.server_directives == 0) {
+            fprintf(stderr, "A server directive must be specified when executing download or upload tests. What servers to test?\n");
+            return EXIT_FAILURE;
+        }
+
+        CURL *curl_DL = curl_easy_init();
+        CURL *curl_UL = curl_easy_init();
+        if(!curl_DL || !curl_UL) {
+            fprintf(stderr, "curl init failed\n");
+            cleanup_servers(servers, s_count);
+            return EXIT_FAILURE;
+        }
+        UploadData buf;
+        buf.buffer = malloc(UP_BUFFER_SIZE);
+        if(!buf.buffer) {
+            fprintf(stderr, "Upload buffer alloc failed\n");
+            cleanup_servers(servers, s_count);
+            return EXIT_FAILURE;
+        }
+        fill_buffer(&buf);
+        curl_download_setopts(curl_DL, flags.dutimeout, flags.disableSSL);
+        struct curl_slist *headers_DL = add_headers(curl_DL);
+        curl_upload_setopts(curl_UL, &buf, flags.dutimeout, flags.disableSSL);
+        struct curl_slist *headers_UL = add_headers(curl_UL);
+
+        for(size_t i = 0; i < s_count; ++i) {
+            double mbpsDL = get_download_speed_single(curl_DL, &servers[i], flags.dutimeout, flags.disableSSL);
+            double mbpsUL = get_upload_speed_single(curl_UL, &servers[i], flags.dutimeout, flags.disableSSL);
+            if(mbpsDL != -1) {
+                printf("Download speed:   \t%.2f Mbps\n", mbpsDL);
+            }
+            if(mbpsUL != -1) {
+                printf("Upload speed:     \t%.2f Mbps\n", mbpsUL);
+            }
+            char *host_clean = remove_port(servers[i].host);
+            if (!host_clean) {
+                fprintf(stderr, "Failed to remove port for host %s\n", servers[i].host);
+                continue;
+            }
+            printf("Tested host: %s\n\n", servers[i].host);
+            free(host_clean);
+        }
+
+        free(buf.buffer);
+        curl_slist_free_all(headers_DL);
+        curl_slist_free_all(headers_UL);
+
+        char *ip;
+        if(get_user_ip(&ip) == EXIT_FAILURE) {
+            return EXIT_FAILURE;
+        }
+        printf("User IP: %s\n", ip);
+        free(ip);
+
+        char *city, *country;
+        if(get_user_location("", &city, &country) == EXIT_FAILURE) {
+            free(city);
+            free(country);
+            cleanup_servers(servers, s_count);
+            return EXIT_FAILURE;
+        }
+
+        printf("Country: %s, City: %s\n", country, city);
+        free(city);
+        free(country);
+        printf("\n");
     }
     
     if(flags.d_flag || flags.u_flag) {
