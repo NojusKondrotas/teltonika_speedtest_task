@@ -416,16 +416,6 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    if(flags.s_flag) {
-        char *ip = get_user_ip_driver();
-        if(!ip) {
-            cleanup_servers(servers, s_count);
-            return EXIT_FAILURE;
-        }
-        printf("User IP: %s\n\n", ip);
-        free(ip);
-    }
-
     if(flags.l_flag) {
         char *clean_host = NULL, *city = NULL, *country = NULL;
         if(flags.user || (!flags.path && !flags.host)) {
@@ -452,6 +442,16 @@ int main(int argc, char *argv[]) {
                 printf("\n");
             }
         }
+    }
+
+    if(flags.s_flag) {
+        char *ip = get_user_ip_driver();
+        if(!ip) {
+            cleanup_servers(servers, s_count);
+            return EXIT_FAILURE;
+        }
+        printf("User IP: %s\n\n", ip);
+        free(ip);
     }
 
     cleanup_servers(servers, s_count);
