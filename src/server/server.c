@@ -154,24 +154,26 @@ Server *load_servers(const char *filepath, size_t *count) {
         cJSON *host = cJSON_GetObjectItem(item, "host");
         cJSON *id = cJSON_GetObjectItem(item, "id");
 
-        if(!country || !city || !provider || !host || !id) {
-            fprintf(stderr, "A required property was not found in a JSON object at index %d\n", i);
+        if(!host) {
+            fprintf(stderr, "Required property of host was not found in a JSON object at index %d\n", i);
             cleanup_servers(servers, i);
             cJSON_Delete(json);
             return NULL;
         }
 
-        if (!cJSON_IsString(country) || !cJSON_IsString(city) || 
-            !cJSON_IsString(provider) || !cJSON_IsString(host) || 
-            !cJSON_IsNumber(id)) {
-            fprintf(stderr, "A required property is of an invalid type in a JSON object at index %d\n", i);
+        if (!cJSON_IsString(host)) {
+            fprintf(stderr, "Required property of host is of an invalid type in a JSON object at index %d\n", i);
             cleanup_servers(servers, i);
             cJSON_Delete(json);
             return NULL;
         }
 
-        Server server = create_server(country->valuestring, city->valuestring,
-            provider->valuestring, host->valuestring, id->valueint);
+        Server server = create_server(
+            (country && cJSON_IsString(country)) ? country->valuestring : "",
+            (city && cJSON_IsString(city)) ? city->valuestring : "",
+            (provider && cJSON_IsString(provider)) ? provider->valuestring : "",
+            host->valuestring,
+            (id && cJSON_IsNumber(id)) ? id->valueint : 0);
 
         if(!server.country || !server.city || !server.provider || !server.host) {
             fprintf(stderr, "Failure allocating memory for server property\n");
