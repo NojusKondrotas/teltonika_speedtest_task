@@ -209,78 +209,29 @@ int get_download_speed(Server *servers, size_t count, size_t timeout, int disabl
         return EXIT_FAILURE;
     }
 
-    size_t max_reqs = 5;
-    curl_off_t total_time_all, total_data_all;
-    curl_off_t max_total_time = timeout * 1e6;
+    curl_download_setopts(curl, timeout, disableSSL);
+    struct curl_slist *headers = add_headers(curl);
+
+    double mbps;
     for(size_t i = 0; i < count; ++i) {
-        total_time_all = 0, total_data_all = 0;
-        char *host_dl = probe_download_endpoint(curl, servers[i].host, timeout, disableSSL);
-        if(!host_dl) {
-            fprintf(stderr, "No endpoint for download found on host %s\n\n", servers[i].host);
+        mbps = -1;
+
+        mbps = get_download_speed_single(curl, &servers[i], timeout, disableSSL);
+        if(mbps == -1) {
             continue;
         }
-        printf("Using endpoint %s\n", host_dl);
-        curl_easy_reset(curl);
-        curl_easy_setopt(curl, CURLOPT_URL, host_dl);
-        curl_download_setopts(curl, timeout, disableSSL);
-        struct curl_slist *headers = add_headers(curl);
 
-        for(size_t req = 0; req < max_reqs; ++req) {
-            CURLcode res = curl_easy_perform(curl);
-
-            if(res == CURLE_OK) {
-                curl_off_t total_time;
-                curl_off_t dl_size;
-                curl_easy_getinfo(curl, CURLINFO_TOTAL_TIME_T, &total_time);
-                curl_easy_getinfo(curl, CURLINFO_SIZE_DOWNLOAD_T, &dl_size);
-                total_time_all += total_time;
-                total_data_all += dl_size;
-
-                if(total_time_all >= max_total_time) {
-                    fprintf(stderr, "Timeout from %s, %zu requests processed\n", servers[i].host, req);
-                    break;
-                }
-                curl_off_t left_time = (timeout - total_time_all) / 1e6;
-                if(left_time > 1) {
-                    curl_easy_setopt(curl, CURLOPT_TIMEOUT, left_time);
-                } else {
-                    fprintf(stderr, "Timeout from %s, %zu requests processed\n", servers[i].host, req);
-                    break;
-                }
-            } else if(res == CURLE_OPERATION_TIMEDOUT) {
-                fprintf(stderr, "Timeout from %s\n", servers[i].host);
-                break;
-            } else if(res == CURLE_COULDNT_CONNECT) {
-                fprintf(stderr, "Connection timeout to %s\n", servers[i].host);
-                break;
-            } else if(res == CURLE_COULDNT_RESOLVE_HOST) {
-                fprintf(stderr, "Could not resolve hostname for %s\n", servers[i].host);
-                break;
-            } else {
-                fprintf(stderr, "Failed to download from %s: %s\n", servers[i].host, curl_easy_strerror(res));
-            }
-        }
-
-        curl_slist_free_all(headers);
-        free(host_dl);
-
-        if(total_time_all > 0 && total_data_all > 0) {
-            double total_time_seconds = (double)total_time_all / 1e6;
-            double mbps = (total_data_all * 8.0) / 1e6 / total_time_seconds;
-
-            printf("%s: %.2f Mbps\n\n", servers[i].host, mbps);
-        } else {
-            printf("No successful downloads to calculate speed.\n\n");
-        }
+        printf("Download speed:   \t%.2f Mbps\n", mbps);
+        printf("Tested host: %s\n\n", servers[i].host);
     }
 
+    curl_slist_free_all(headers);
     curl_easy_cleanup(curl);
     return EXIT_SUCCESS;
 }
 
 int get_upload_speed(Server *servers, size_t count, size_t timeout, int disableSSL) {
     CURL *curl;
-    CURLcode res;
     UploadData buf;
     buf.buffer = malloc(UP_BUFFER_SIZE);
     if(!buf.buffer) {
@@ -298,56 +249,18 @@ int get_upload_speed(Server *servers, size_t count, size_t timeout, int disableS
     curl_upload_setopts(curl, &buf, timeout, disableSSL);
     struct curl_slist *headers = add_headers(curl);
 
-    size_t max_reqs = 5;
-    curl_off_t total_time_all, total_data_all;
-    curl_off_t max_total_time = timeout * 1e6;
+    double mbps;
     for(size_t i = 0; i < count; ++i) {
-        total_time_all = 0, total_data_all = 0;
+        mbps = -1;
         curl_easy_setopt(curl, CURLOPT_URL, servers[i].host);
 
-        for(size_t req = 0; req < max_reqs; ++req) {
-            res = curl_easy_perform(curl);
-
-            if(res == CURLE_OK) {
-                curl_off_t total_time;
-                curl_easy_getinfo(curl, CURLINFO_TOTAL_TIME_T, &total_time);
-                total_time_all += total_time;
-                total_data_all += UP_BUFFER_SIZE;
-
-                if(total_time_all >= max_total_time) {
-                    fprintf(stderr, "Timeout to %s, %zu requests processed\n", servers[i].host, req);
-                    break;
-                }
-                curl_off_t left_time = (timeout - total_time_all) / 1e6;
-                if(left_time > 1) {
-                    curl_easy_setopt(curl, CURLOPT_TIMEOUT, left_time);
-                } else {
-                    fprintf(stderr, "Timeout to %s, %zu requests processed\n", servers[i].host, req);
-                    break;
-                }
-            } else if(res == CURLE_OPERATION_TIMEDOUT) {
-                fprintf(stderr, "Timeout to %s\n", servers[i].host);
-                break;
-            } else if(res == CURLE_COULDNT_CONNECT) {
-                fprintf(stderr, "Connection timeout to %s\n", servers[i].host);
-                break;
-            } else if(res == CURLE_COULDNT_RESOLVE_HOST) {
-                fprintf(stderr, "Could not resolve hostname for %s\n", servers[i].host);
-                break;
-            } else {
-                fprintf(stderr, "Failed to upload to %s: %s\n", servers[i].host, curl_easy_strerror(res));
-            }
+        mbps = get_upload_speed_single(curl, &servers[i], timeout, disableSSL);
+        if(mbps == -1) {
+            continue;
         }
 
-        if (total_time_all > 0) {
-            double total_time_seconds = (double)total_time_all / 1000000.0;
-            
-            double mbps = ((double)total_data_all * 8.0) / 1000000.0 / total_time_seconds;
-            
-            printf("%s: %.2f Mbps\n\n", servers[i].host, mbps);
-        } else {
-            printf("No successful uploads to calculate speed.\n\n");
-        }
+        printf("Upload speed:     \t%.2f Mbps\n", mbps);
+        printf("Tested host: %s\n\n", servers[i].host);
     }
 
     free(buf.buffer);
