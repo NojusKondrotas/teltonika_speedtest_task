@@ -16,6 +16,7 @@ typedef struct s_upload_data{
 }UploadData;
 
 struct curl_slist *add_headers(CURL *curl);
+void curl_download_setopts(CURL *curl, size_t timeout, int disableSSL);
 void curl_upload_setopts(CURL *curl, UploadData *buf, size_t timeout, int disableSSL);
 
 void fill_buffer(UploadData *buf);
