@@ -418,7 +418,20 @@ int main(int argc, char *argv[]) {
 
     if(flags.l_flag) {
         char *clean_host = NULL, *city = NULL, *country = NULL;
-        if(flags.user || (!flags.path && !flags.host)) {
+        if(flags.path || flags.host) {
+            for(size_t i = 0; i < s_count; ++i) {
+                if(get_host_location_driver(servers[i].host, &clean_host, &city, &country) == EXIT_SUCCESS) {
+                    printf("Host's %s location:\nCountry: %s, City: %s\n", clean_host, country, city);
+                }
+
+                free(clean_host);
+                free(city);
+                free(country);
+                city = country = NULL;
+                printf("\n");
+            }
+        }
+        if(flags.user) {
             if(get_host_location_driver("", &clean_host, &city, &country) == EXIT_FAILURE) {
                 free(city);
                 free(country);
@@ -426,21 +439,11 @@ int main(int argc, char *argv[]) {
                 return EXIT_FAILURE;
             }
             printf("User location:\nCountry: %s, City: %s\n", country, city);
+            free(clean_host);
             free(city);
             free(country);
             city = country = NULL;
             printf("\n");
-        } else {
-            for(size_t i = 0; i < s_count; ++i) {
-                if(get_host_location_driver(servers[i].host, &clean_host, &city, &country) == EXIT_SUCCESS) {
-                    printf("Host's %s location:\nCountry: %s, City: %s\n", clean_host, country, city);
-                }
-
-                free(city);
-                free(country);
-                city = country = NULL;
-                printf("\n");
-            }
         }
     }
 
