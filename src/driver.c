@@ -16,6 +16,8 @@ struct option long_options[] = {
     {"timeout", required_argument, 0, 'T'},
     {"city", required_argument, 0, 'c'},
     {"country", required_argument, 0, 'C'},
+    {"best_city", required_argument, 0, 'b'},
+    {"best_country", required_argument, 0, 'B'},
     {"user", no_argument, 0, 'U'},
     {"disableSSL", no_argument, 0, 'D'},
     {"joint", no_argument, 0, 'J'},
@@ -72,6 +74,14 @@ int parse_cmd_args(int argc, char *argv[], Flags *flags) {
                 flags->country = optarg;
                 ++flags->server_filters;
                 break;
+            case 'b':
+                flags->best_city = optarg;
+                ++flags->best_filters;
+                break;
+            case 'B':
+                flags->best_country = optarg;
+                ++flags->best_filters;
+                break;
             case 'U':
                 flags->user = 1;
                 break;
@@ -116,12 +126,15 @@ int main(int argc, char *argv[]) {
         .dutimeout = 0,
         .city = NULL,
         .country = NULL,
+        .best_city = NULL,
+        .best_country = NULL,
         .user = 0,
         .disableSSL = 0,
         .joint = 0,
 
         .server_directives = 0,
-        .server_filters = 0
+        .server_filters = 0,
+        .best_filters = 0
     };
 
     if(parse_cmd_args(argc, argv, &flags) == EXIT_FAILURE) {
@@ -138,8 +151,18 @@ int main(int argc, char *argv[]) {
         return EXIT_FAILURE;
     }
 
+    if(flags.best_filters > 1) {
+        fprintf(stderr, "Multiple best server filters specified (--best_city and --best_country). Ambiguity between which one to apply\n");
+        return EXIT_FAILURE;
+    }
+
     if(flags.dutimeout < 0) {
         fprintf(stderr, "Timeout cannot be < 0\n");
+        return EXIT_FAILURE;
+    }
+
+    if(flags.joint && flags.best_filters == 0) {
+        fprintf(stderr, "A best server filter must be specified when conducting a joint test\n");
         return EXIT_FAILURE;
     }
     
@@ -244,6 +267,82 @@ int main(int argc, char *argv[]) {
             free(host_clean);
         }
 
+        if(flags.best_city) {
+            size_t new_count;
+            Server *tmp = get_servers_by_city(servers, s_count, flags.city, &new_count);
+
+            if(!tmp) {
+                return EXIT_FAILURE;
+            }
+
+            double best_speed = -1, best_dl_speed, best_ul_speed;
+            char *best_server = NULL;
+            for(size_t i = 0; i < new_count; ++i) {
+                double dl_speed = get_download_speed_single(curl_DL, &tmp[i], flags.dutimeout, flags.disableSSL);
+                double ul_speed = get_upload_speed_single(curl_DL, &tmp[i], flags.dutimeout, flags.disableSSL);
+                double speed = (dl_speed + ul_speed) / 2;
+
+                if(speed > best_speed) {
+                    best_speed = speed;
+                    best_dl_speed = dl_speed;
+                    best_ul_speed = ul_speed;
+                    best_server = tmp[i].host;
+                }
+            }
+
+            if(best_server) {
+                printf("Best server in %s: %s\n", flags.best_city, best_server);
+                printf("Download speed:   \t%.2f Mbps\n", best_dl_speed);
+                printf("Upload speed:     \t%.2f Mbps\n", best_ul_speed);
+            } else {
+                fprintf(stderr, "No best server found in %s\n", flags.best_city);
+            }
+
+            free(tmp);
+        } else if(flags.best_country) {
+            size_t new_count;
+            Server *tmp = get_servers_by_country(servers, s_count, flags.best_country, &new_count);
+
+            if(!tmp) {
+                return EXIT_FAILURE;
+            }
+
+            double best_speed = -1, best_dl_speed, best_ul_speed;
+            char *best_server = NULL;
+            for(size_t i = 0; i < new_count; ++i) {
+                double dl_speed = get_download_speed_single(curl_DL, &tmp[i], flags.dutimeout, flags.disableSSL);
+                double ul_speed = get_upload_speed_single(curl_DL, &tmp[i], flags.dutimeout, flags.disableSSL);
+                double speed = (dl_speed + ul_speed) / 2;
+
+                if(speed > best_speed) {
+                    best_speed = speed;
+                    best_dl_speed = dl_speed;
+                    best_ul_speed = ul_speed;
+                    best_server = tmp[i].host;
+                }
+            }
+
+            if(best_server) {
+                printf("Best server in %s: %s\n", flags.best_country, best_server);
+                printf("Download speed:   \t%.2f Mbps\n", best_dl_speed);
+                printf("Upload speed:     \t%.2f Mbps\n", best_ul_speed);
+            } else {
+                fprintf(stderr, "No best server found in %s\n", flags.best_country);
+            }
+
+            free(tmp);
+        } else {
+            fprintf(stderr, "Internal error: best server filter specified but neither best_country nor best_city found\n");
+            free(buf.buffer);
+            curl_slist_free_all(headers_DL);
+            curl_slist_free_all(headers_UL);
+            curl_easy_cleanup(curl_DL);
+            curl_easy_cleanup(curl_UL);
+            return EXIT_FAILURE;
+        }
+
+        printf("\n");
+
         free(buf.buffer);
         curl_slist_free_all(headers_DL);
         curl_slist_free_all(headers_UL);
@@ -259,8 +358,6 @@ int main(int argc, char *argv[]) {
 
         char *city, *country;
         if(get_user_location("", &city, &country) == EXIT_FAILURE) {
-            free(city);
-            free(country);
             cleanup_servers(servers, s_count);
             return EXIT_FAILURE;
         }
@@ -268,7 +365,9 @@ int main(int argc, char *argv[]) {
         printf("Country: %s, City: %s\n", country, city);
         free(city);
         free(country);
+        cleanup_servers(servers, s_count);
         printf("\n");
+        return EXIT_SUCCESS;
     }
     
     if(flags.d_flag || flags.u_flag) {
@@ -309,7 +408,7 @@ int main(int argc, char *argv[]) {
         if(get_user_ip(&ip) == EXIT_FAILURE) {
             return EXIT_FAILURE;
         }
-        printf("User IP: %s\n", ip);
+        printf("User IP: %s\n\n", ip);
         free(ip);
     }
 

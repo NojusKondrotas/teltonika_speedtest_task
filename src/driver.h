@@ -12,11 +12,14 @@ typedef struct s_driver_flags{
     int dutimeout;
     char *city;
     char *country;
+    char *best_city;
+    char *best_country;
     int user;
     int disableSSL;
     int joint;
     size_t server_directives;
     size_t server_filters;
+    size_t best_filters;
 }Flags;
 
 typedef struct s_download_args{
